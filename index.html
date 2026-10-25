@@ -397,6 +397,7 @@
     <button class="wp-tab" id="ppListenTab" onclick="ppSwitch('listen')">Listening</button>
     <button class="wp-tab" id="ppSwapTab" onclick="ppSwitch('swap')">Word swaps</button>
   </div>
+  <div class="vt-mode-row"><label>Explanations / Penjelasan:</label><span class="seg" id="ppLangSeg"><button data-l="en" onclick="grSetLang('en')">English</button><button data-l="id" onclick="grSetLang('id')">Indonesia</button><button data-l="both" onclick="grSetLang('both')">Keduanya</button></span></div>
   <div class="wp-box" id="ppBox"></div>
 
   <div class="section-title">Writing practice</div>
@@ -3945,12 +3946,13 @@ function grX(en,id,plain){
   return f(en)+`<div class="gr-id">${f(id)}</div>`;
 }
 function grLangUI(){
-  document.querySelectorAll("#grLangSeg button").forEach(b=>b.classList.toggle("on",b.dataset.l===grLang));
+  document.querySelectorAll("#grLangSeg button, #ppLangSeg button").forEach(b=>b.classList.toggle("on",b.dataset.l===grLang));
 }
 function grSetLang(l){
   grLang=l;try{localStorage.setItem("ielts_gr_lang",l);}catch(e){}
   grLangUI();
   if(grUnit)grOpenUnit(grUnit,true);
+  ppRelang();
 }
 function grOpenUnit(n,keep){
   const u=grGet(n);if(!u)return;
@@ -5166,6 +5168,59 @@ const PP_SENT=[
          ["The museum's collection was donated by the government.","detail","It was a family, not the government."]],
   keys:"was donated by → gave; wealthy → rich; local → from the area"},
 ];
+// Indonesian versions of each trap explanation, same order as traps
+const PP_ID_WHY={
+ "The number of people living in cities has risen sharply over the past fifty years.":["“Leaving” (meninggalkan), bukan “living in” (tinggal di) — satu kata mengubah artinya.","Kalimat aslinya mengatakan jumlahnya naik tajam.","Kalimat aslinya tidak menyebut krisis perumahan sama sekali."],
+ "Most experts agree that regular exercise reduces the risk of heart disease.":["‘Most’ (sebagian besar) berubah menjadi ‘every’ (setiap), dan ‘reduces the risk’ (mengurangi risiko) berubah menjadi ‘stops … ever’ (mencegah sepenuhnya).","Kalimat aslinya mengatakan sebagian besar ahli setuju.","Kata-katanya sama, tetapi sebab dan akibatnya dibalik."],
+ "Children who read for pleasure tend to perform better at school.":["Idenya sama tentang membaca dan sekolah, tetapi hubungannya dibalik.","“Tend to” menunjukkan kecenderungan, bukan jaminan.","PR (homework) tidak pernah disebutkan."],
+ "The museum is closed to the public on Mondays, except during school holidays.":["Kalimat aslinya membuat pengecualian untuk libur sekolah.","Museum tutup pada hari Senin — libur sekolah adalah pengecualiannya.","Jumlah pengunjung tidak pernah disebutkan."],
+ "Although the drug proved effective in trials, it caused side effects in a small number of patients.":["Obatnya efektif, dan hanya sedikit pasien yang mengalami efek samping.","Beberapa pasien memang mengalami efek samping.","Tidak ada yang mengatakan obatnya ditarik."],
+ "The government plans to ban petrol cars by 2035.":["“Plans to” adalah rencana di masa depan, bukan sesuatu yang sudah terjadi.","Larangan adalah kebalikan dari dorongan.","Hanya mobil bensin, bukan semua mobil."],
+ "Tourism accounts for roughly a third of the island's income.":["Sepertiga bukan lebih dari setengah.","Kata-katanya sama, tetapi sekarang tentang wisatawan, bukan pendapatan.","Sepertiga bukan seluruhnya."],
+ "Few students chose to live on campus in their final year.":["“Few” berarti tidak banyak.","“Few” (sedikit) tidak sama dengan “none” (tidak ada sama sekali).","Kalimat aslinya tidak memberi alasan, misalnya soal biaya."],
+ "The bridge was designed by a local engineer but built by a foreign company.":["Lokal dan asing telah ditukar.","Perusahaan asing yang membangunnya.","Lamanya pembangunan tidak pernah disebutkan."],
+ "Unemployment has remained stable despite the economic downturn.":["Angkanya tetap stabil.","Kata-katanya sama tetapi urutannya berbeda — artinya pun berbeda.","Tidak ada prediksi tentang pemulihan."],
+ "It is not essential to book in advance, but it is recommended at weekends.":["“Recommended” adalah saran, bukan aturan.","Memesan dianjurkan pada akhir pekan.","Harga tidak pernah disebutkan."],
+ "Older employees are often more loyal to their companies than younger workers.":["“Often” (sering) berubah menjadi “always” (selalu).","Lebih tua dan lebih muda telah ditukar.","Gaji tidak pernah disebutkan."],
+ "The library's opening hours will be extended from next month.":["Ini akan terjadi bulan depan, bukan bulan lalu.","Extended berarti lebih panjang, bukan lebih pendek.","Staf tidak pernah disebutkan."],
+ "Scientists have yet to find a cure for the common cold.":["“Have yet to” berarti hal itu belum terjadi.","Tidak ada yang mengatakan mereka berhenti mencari.","Belum ditemukan tidak sama dengan mustahil."],
+ "Sales of electric vehicles doubled between 2020 and 2022.":["Naik dua kali lipat, bukan turun setengahnya.","Penjualan yang naik dua kali lipat, bukan harga.","Mobil bensin tidak pernah disebutkan."],
+ "Participants were asked to avoid caffeine for 24 hours before the test.":["Mereka diminta untuk menghindarinya.","Sebelum tes, bukan sesudahnya.","Tidak disebutkan ada peserta yang dikeluarkan."],
+ "The new policy has been criticised for ignoring the needs of rural communities.":["Kebijakan itu dikritik, bukan dipuji.","Kata-katanya sama, tetapi sekarang masyarakatnya yang dikritik.","Tidak ada yang mengatakan kebijakan itu dibatalkan."],
+ "Only a minority of households recycle their plastic waste.":["Minoritas berarti kurang dari setengah.","Minoritas bukan berarti tidak ada sama sekali.","Ini tentang menghasilkan sampah plastik, bukan mendaur ulangnya."],
+ "Prices are expected to fall slightly next year.":["Ini adalah prediksi untuk tahun depan.","Turun, bukan naik.","‘Slightly’ (sedikit) berubah menjadi ‘sharp’ (tajam)."],
+ "The festival attracts visitors from all over the world, although most come from neighbouring countries.":["Sebagian besar datang dari negara tetangga.","Pengunjung datang dari seluruh dunia.","Pertumbuhan jumlah pengunjung tidak pernah disebutkan."],
+ "The new bridge will reduce travel time between the two towns by about half.":["Waktunya menjadi setengah, bukan dua kali lebih lama.","‘Will reduce’ membahas masa depan; jembatannya belum dibuka.","Biaya tidak pernah disebutkan."],
+ "Students who sleep fewer than six hours a night tend to remember less of what they study.":["Kata-katanya sama, tetapi sebab dan akibatnya tertukar.","‘Remember less’ (lebih sedikit mengingat) bukan ‘forget everything’ (lupa semuanya).","Yang dimaksud adalah siswa yang tidurnya lebih sedikit."],
+ "Admission to the museum is free for children under twelve.":["Gratis berarti mereka bisa masuk tanpa bayar — bukan dilarang masuk.","Hanya anak di bawah dua belas tahun yang masuk gratis.","Di bawah dua belas tahun, bukan tiga belas tahun ke atas."],
+ "The company plans to open three new branches in Asia next year.":["Ini rencana untuk tahun depan, bukan sesuatu yang sudah terjadi.","Membuka, bukan menutup.","Lapangan kerja tidak pernah disebutkan."],
+ "Despite heavy investment, the city's recycling rate has barely changed.":["Tingkat daur ulangnya hampir tidak berubah.","Kalimat aslinya tidak mengatakan bahwa tidak adanya perubahan menjadi alasan untuk berinvestasi.","Investasinya besar, bukan sangat sedikit."],
+ "Not all of the participants completed the survey.":["‘Not all’ berarti ada yang tidak mengisi — bukan berarti tidak ada yang mengisi sama sekali.","Tidak semua dari mereka mengisinya.","Ini tentang menyelesaikan survei, bukan menyetujui hasilnya."],
+ "The village has grown rapidly since the factory opened in 2015.":["Desanya yang tumbuh; pabriknya yang dibuka pada tahun 2015.","‘Since’ berarti dari tahun 2015 sampai sekarang, bukan sebelum tahun 2015.","Pariwisata tidak pernah disebutkan."],
+ "Fewer young people are buying cars than a decade ago.":["Lebih sedikit, bukan lebih banyak.","Perbandingannya dibalik.","Lebih sedikit bukan berarti tidak ada sama sekali."],
+ "Visitors are advised to wear comfortable shoes, as the tour involves a lot of walking.":["‘Advised’ adalah anjuran, bukan kewajiban — dan sepatu hiking tidak pernah disebutkan.","Tur ini melibatkan banyak berjalan kaki.","Sarannya tentang sepatu, bukan air minum."],
+ "The research suggests that a diet high in sugar may increase the risk of heart disease.":["‘Suggests’ dan ‘may’ itu hati-hati; ‘shown beyond doubt’ (terbukti tanpa keraguan) terlalu pasti.","Sebab dan akibatnya dibalik.","Meningkatkan, bukan mengurangi."],
+ "Applications must be submitted by 5 p.m. on Friday.":["‘By’ berarti paling lambat — bukan mulai dari.","‘Must … by’ berarti batas waktu yang ketat.","Tidak disebutkan bagaimana lamaran harus dikirim."],
+ "Most of the city's electricity now comes from solar and wind power.":["‘Most’ (sebagian besar) bukan ‘all’ (semua).","‘Now’ — ini keadaan sekarang, bukan masa lalu.","Menghasilkan listrik berlebih tidak pernah disebutkan."],
+ "Online shopping has made it harder for small local shops to survive.":["Kata-katanya sama, tetapi sekarang toko-tokonya yang menjadi penyebab.","Belanja online membuat toko kecil lebih sulit bertahan.","‘Harder to survive’ (lebih sulit bertahan) tidak berarti semuanya tutup."],
+ "The library is open late on Thursdays, until 9 p.m.":["Perpustakaan tutup pukul 9 malam; bukan buka pada jam itu.","Hanya pada hari Kamis.","Perpustakaan buka sampai malam."],
+ "Learning a second language can delay the onset of memory problems in old age.":["‘Can delay’ (bisa menunda) bukan ‘completely prevents’ (mencegah sepenuhnya).","Topiknya sama, tetapi hubungannya berlawanan arah.","Menunda berarti lebih lambat, bukan lebih cepat."],
+ "Parking is available, but spaces are limited, so it's best to arrive early.":["Tempat parkir tersedia.","Tempatnya terbatas.","Harga parkir tidak pernah disebutkan."],
+ "Unlike his brother, Daniel prefers working alone.":["‘Unlike’ berarti kakak-beradik itu berbeda.","Daniel, bukan saudaranya, yang lebih suka bekerja sendiri.","Tidak ada alasan yang diberikan."],
+ "Since the speed limit was lowered, the number of serious accidents has dropped by a third.":["Batas kecepatannya diturunkan, bukan dinaikkan.","Sepertiga, bukan dua pertiga.","Turun sepertiga bukan berarti semuanya hilang."],
+ "The course is suitable for beginners, and no previous experience is required.":["Tidak perlu pengalaman.","Biaya tidak pernah disebutkan.","Kalimat ini mengatakan pemula boleh ikut, bukan berarti orang lain tidak boleh."],
+ "Rising temperatures are forcing some species to move to higher ground.":["Suhunya meningkat.","Hanya sebagian spesies.","Sebab dan akibatnya dibalik."],
+ "The meeting has been moved from Tuesday to Wednesday morning.":["Harinya dibalik.","Rapatnya dipindah ke hari lain, bukan dibatalkan.","Ini satu rapat yang dipindah ke hari baru, bukan dua sesi."],
+ "Few people believed the plan would work, but it was a great success.":["Hanya sedikit orang yang percaya, bukan sebagian besar.","Rencana itu sangat berhasil.","Kota-kota lain tidak pernah disebutkan."],
+ "Children who spend more time outdoors are less likely to become short-sighted.":["Sebab dan akibatnya dibalik.","‘Less likely’ (kemungkinannya lebih kecil) bukan jaminan.","Di luar ruangan, bukan di dalam ruangan."],
+ "The hotel restaurant is closed for renovation until the end of May.":["Hanya restorannya yang tutup, bukan seluruh hotel.","Restorannya tutup sekarang, sampai akhir Mei.","Menu baru tidak pernah disebutkan."],
+ "Only a small proportion of plastic waste is actually recycled.":["Hanya sebagian kecil yang didaur ulang.","Ini tentang daur ulang, bukan tentang laut.","Sebagian kecil bukan berarti tidak ada sama sekali."],
+ "Working from home has become far more common since 2020.":["Bekerja dari rumah menjadi lebih umum.","Perubahannya terjadi setelah 2020, bukan sebelumnya.","‘More common’ (lebih umum) tidak berarti semua orang."],
+ "The ferry does not run in bad weather.":["Feri tidak beroperasi saat cuaca buruk.","Saat cuaca buruk, feri tidak beroperasi sama sekali — bukan hanya lebih lambat.","Jembatan tidak pernah disebutkan."],
+ "The author wrote her first novel while she was working as a nurse.":["Ia menulisnya ketika masih menjadi perawat, bukan sebelum menjadi perawat.","Topik novelnya tidak pernah disebutkan.","Kata-katanya sama, tetapi sekarang orang lain yang menulisnya."],
+ "Prices are likely to remain high for the rest of the year.":["‘Likely’ (kemungkinan besar) bukan ‘certainly’ (pasti).","Tetap tinggi, bukan turun.","Untuk sisa tahun ini, bukan lima tahun."],
+ "The museum's collection was donated by a wealthy local family.":["Koleksinya disumbangkan (diberikan gratis), bukan dibeli.","Arah pemberiannya dibalik.","Pemberinya sebuah keluarga, bukan pemerintah."],
+};
 // word swaps, grouped so the wrong options are the same kind of word
 const PP_SWAP=Object.entries({
   people:"elderly people=senior citizens; workers=employees; the government=the authorities; people from abroad=overseas visitors; young people=the younger generation; scientists=researchers",
@@ -5177,7 +5232,42 @@ const PP_SWAP=Object.entries({
   linking:"because of=due to; but=however; also=in addition; so=as a result; for example=for instance",
 }).flatMap(([g,list])=>list.split("; ").map(p=>{const [a,b]=p.split("=");return {a,b,g};}));
 
-let ppMode="sent",ppQ=[],ppIdx=0,ppScore=0,ppFell={},ppOpts=[],ppDone=false,ppPlays=0;
+const PP_TRAPS_ID={
+  opp:["Arti berlawanan","Kalimat ini menyatakan kebalikan dari kalimat aslinya."],
+  strong:["Terlalu kuat","Kalimat ini melebih-lebihkan kalimat aslinya — waspadai all, always, only, never, completely."],
+  ng:["Tidak disebutkan","Kalimat ini menambahkan informasi yang tidak pernah disebutkan di kalimat aslinya."],
+  detail:["Detail salah","Kalimat ini mengubah detail penting seperti angka, orang, atau tempat."],
+  swap:["Kata sama, arti baru","Kalimat ini memakai kata-kata yang sama tetapi mengubah siapa melakukan apa, atau sebab dan akibat."],
+  time:["Waktu salah","Kalimat ini mengubah kapan sesuatu terjadi."],
+};
+// trainer labels; the paraphrase trainer shares the grammar course's language setting (grLang)
+const PP_TXT={
+  en:{q:(i,n)=>`Question ${i} of ${n}`,score:"Score",noAudio:"This browser can’t play audio. Try Chrome, Safari or Edge.",
+    listenHint:"Read the options, then play the recording. Which option matches what the speaker says?",
+    sentHint:"Which sentence has the same meaning as this one?",swapHint:"Choose the best paraphrase for:",
+    transcript:"Transcript",ok:"✓ Paraphrase",okWhy:"Same meaning, different words.",keys:"How it was paraphrased",
+    right:"✓ Correct",wrong:"Not quite",next:"Next →",results:"See results",play:"Play recording",again:"Play again",slower:"Slower",
+    practice:"Practice",exam:"Exam",usedOnce:"Played once — in the exam you hear each recording only once.",
+    examNote:"Exam mode: you can listen only once.",played:n=>`Played ${n}×`,practiceNote:"Practice mode: replay as often as you like.",
+    pct:p=>`${p}% correct`,fell:"Traps you fell for",again2:"New round"},
+  id:{q:(i,n)=>`Soal ${i} dari ${n}`,score:"Skor",noAudio:"Browser ini tidak bisa memutar audio. Coba Chrome, Safari, atau Edge.",
+    listenHint:"Baca pilihannya dulu, lalu putar rekamannya. Pilihan mana yang sesuai dengan yang dikatakan pembicara?",
+    sentHint:"Kalimat mana yang artinya sama dengan kalimat ini?",swapHint:"Pilih parafrase yang paling tepat untuk:",
+    transcript:"Transkrip",ok:"✓ Parafrase",okWhy:"Artinya sama, kata-katanya berbeda.",keys:"Cara parafrasenya",
+    right:"✓ Benar",wrong:"Belum tepat",next:"Berikutnya →",results:"Lihat hasil",play:"Putar rekaman",again:"Putar lagi",slower:"Lebih lambat",
+    practice:"Latihan",exam:"Ujian",usedOnce:"Sudah diputar sekali — dalam ujian, setiap rekaman hanya diputar satu kali.",
+    examNote:"Mode ujian: kamu hanya bisa mendengar satu kali.",played:n=>`Diputar ${n}×`,practiceNote:"Mode latihan: putar ulang sesering yang kamu mau.",
+    pct:p=>`${p}% benar`,fell:"Jebakan yang mengecohmu",again2:"Ronde baru"},
+};
+// short labels: Indonesian only in "id" mode; longer text: both languages in "both" mode
+function ppT(k,...a){const v=PP_TXT[grLang==="id"?"id":"en"][k];return typeof v==="function"?v(...a):v;}
+function ppX(k,...a){const f=l=>{const v=PP_TXT[l][k];return typeof v==="function"?v(...a):v;};return grX(f("en"),f("id"),true);}
+// headings: "English · Indonesia" in both mode
+function ppH(k){const e=PP_TXT.en[k],i=PP_TXT.id[k];return esc(grLang==="id"?i:grLang==="both"?e+" · "+i:e);}
+function ppTrap(k){return grLang==="id"?PP_TRAPS_ID[k][0]:grLang==="both"?PP_TRAPS[k][0]+" · "+PP_TRAPS_ID[k][0]:PP_TRAPS[k][0];}
+function ppTrapDesc(k){return grX(PP_TRAPS[k][1],PP_TRAPS_ID[k][1],true);}
+
+let ppMode="sent",ppQ=[],ppIdx=0,ppScore=0,ppFell={},ppOpts=[],ppDone=false,ppPick=-1,ppPlays=0;
 // listening: exam mode allows one play, like the real test
 let ppOnce=false;try{ppOnce=localStorage.getItem("ielts_pp_once")==="1";}catch(e){}
 function ppSwitch(m){
@@ -5191,77 +5281,86 @@ function ppStart(){
   ppQ=shuffle(ppMode==="swap"?PP_SWAP:PP_SENT).slice(0,ppMode==="swap"?10:8);
   ppIdx=0;ppScore=0;ppFell={};ppRender();
 }
-function ppRender(){
+// keep=true redraws the same question (after a language change) without reshuffling or losing the answer
+function ppRender(keep){
   if(ppIdx>=ppQ.length){ppFinish();return;}
-  ppDone=false;
-  const q=ppQ[ppIdx],head=`<div class="vt-mode-row"><label>Question ${ppIdx+1} of ${ppQ.length}</label><label style="margin-left:auto;">Score ${ppScore}</label></div>`;
+  const q=ppQ[ppIdx],head=`<div class="vt-mode-row"><label>${ppT("q",ppIdx+1,ppQ.length)}</label><label style="margin-left:auto;">${ppT("score")} ${ppScore}</label></div>`;
+  if(!keep){
+    ppDone=false;ppPick=-1;ppPlays=0;
+    ppOpts=ppMode==="swap"
+      ?shuffle([{t:q.b,k:"ok"},...shuffle(PP_SWAP.filter(x=>x.g===q.g&&x!==q)).slice(0,3).map(x=>({t:x.b,k:"no"}))])
+      :shuffle([{t:q.ok,k:"ok"},...q.traps.map(([t,k,why],j)=>({t,k,why,j}))]);
+  }
   if(ppMode==="listen"){
     if(!("speechSynthesis" in window)){
-      document.getElementById("ppBox").innerHTML='<p class="empty">This browser can’t play audio. Try Chrome, Safari or Edge.</p>';return;}
-    ppPlays=0;
-    ppOpts=shuffle([{t:q.ok,k:"ok"},...q.traps.map(([t,k,why])=>({t,k,why}))]);
+      document.getElementById("ppBox").innerHTML=`<p class="empty">${ppX("noAudio")}</p>`;return;}
     document.getElementById("ppBox").innerHTML=head+`
-      <div class="wp-hint">Read the options, then play the recording. Which option matches what the speaker says?</div>
+      <div class="wp-hint">${ppX("listenHint")}</div>
       <div id="ppListen">${ppListenBar()}</div>
-      <div class="qopts" id="ppOpts">${ppOpts.map((o,i)=>`<button class="qopt" disabled onclick="ppAnswer(${i})">${esc(o.t)}</button>`).join("")}</div>
+      <div class="qopts" id="ppOpts">${ppOpts.map((o,i)=>`<button class="qopt" ${ppPlays?"":"disabled"} onclick="ppAnswer(${i})">${esc(o.t)}</button>`).join("")}</div>
       <div id="ppFeedback"></div>`;
   }else if(ppMode==="sent"){
-    ppOpts=shuffle([{t:q.ok,k:"ok"},...q.traps.map(([t,k,why])=>({t,k,why}))]);
     document.getElementById("ppBox").innerHTML=head+`
-      <div class="wp-hint">Which sentence has the same meaning as this one?</div>
+      <div class="wp-hint">${ppX("sentHint")}</div>
       <div class="pp-orig">${esc(q.s)}</div>
       <div class="qopts" id="ppOpts">${ppOpts.map((o,i)=>`<button class="qopt" onclick="ppAnswer(${i})">${esc(o.t)}</button>`).join("")}</div>
       <div id="ppFeedback"></div>`;
   }else{
-    ppOpts=shuffle([{t:q.b,k:"ok"},...shuffle(PP_SWAP.filter(x=>x.g===q.g&&x!==q)).slice(0,3).map(x=>({t:x.b,k:"no"}))]);
     document.getElementById("ppBox").innerHTML=head+`
-      <div class="wp-hint">Choose the best paraphrase for:</div>
+      <div class="wp-hint">${ppX("swapHint")}</div>
       <div class="qword" style="margin:6px 0 2px;">${esc(q.a)}</div>
       <div class="vt-options" id="ppOpts">${ppOpts.map((o,i)=>`<button class="vt-opt" onclick="ppAnswer(${i})">${esc(o.t)}</button>`).join("")}</div>
       <div id="ppFeedback"></div>`;
   }
+  if(ppDone)ppShowAnswer();
 }
 function ppAnswer(i){
-  if(ppDone)return;ppDone=true;
-  const q=ppQ[ppIdx],pick=ppOpts[i];
+  if(ppDone)return;ppDone=true;ppPick=i;
+  const pick=ppOpts[i];
+  if(pick.k==="ok")ppScore++;
+  else if(ppMode!=="swap")ppFell[pick.k]=(ppFell[pick.k]||0)+1;
+  if(ppMode==="listen"){try{speechSynthesis.cancel();}catch(e){}}
+  ppShowAnswer();
+  const sc=document.querySelector("#ppBox .vt-mode-row label:last-child");if(sc)sc.textContent=ppT("score")+" "+ppScore;
+}
+function ppShowAnswer(){
+  const q=ppQ[ppIdx],pick=ppOpts[ppPick],wid=PP_ID_WHY[q.s];
   document.querySelectorAll("#ppOpts button").forEach((b,j)=>{
     b.disabled=true;
     if(ppOpts[j].k==="ok")b.classList.add("correct");
-    else if(j===i)b.classList.add("wrong");
+    else if(j===ppPick)b.classList.add("wrong");
   });
-  if(pick.k==="ok")ppScore++;
-  else if(ppMode!=="swap")ppFell[pick.k]=(ppFell[pick.k]||0)+1;
   let html="";
   if(ppMode==="listen"){
-    try{speechSynthesis.cancel();}catch(e){}
-    document.getElementById("ppListen").innerHTML=`<button class="speak" onclick="speak(ppQ[ppIdx].s,'GB',0.9)">▶ Play again</button>`;
-    html=`<div class="msec" style="margin-top:14px;"><h4>Transcript</h4><div class="pp-orig">${esc(q.s)}</div></div>`;
+    document.getElementById("ppListen").innerHTML=`<button class="speak" onclick="speak(ppQ[ppIdx].s,'GB',0.9)">▶ ${ppT("again")}</button>`;
+    html=`<div class="msec" style="margin-top:14px;"><h4>${ppH("transcript")}</h4><div class="pp-orig">${esc(q.s)}</div></div>`;
   }
   if(ppMode!=="swap"){
     html+=`<div class="pp-exp">`+ppOpts.map(o=>o.k==="ok"
-        ?`<div class="pp-exp-row"><span class="pp-tag ok">✓ Paraphrase</span>${esc(o.t)}<div class="pp-why">Same meaning, different words.</div></div>`
-        :`<div class="pp-exp-row"><span class="pp-tag">${PP_TRAPS[o.k][0]}</span>${esc(o.t)}<div class="pp-why">${esc(o.why||PP_TRAPS[o.k][1])}</div></div>`).join("")+
-      `</div><div class="msec"><h4>How it was paraphrased</h4>`+
+        ?`<div class="pp-exp-row"><span class="pp-tag ok">${ppT("ok")}</span>${esc(o.t)}<div class="pp-why">${ppX("okWhy")}</div></div>`
+        :`<div class="pp-exp-row"><span class="pp-tag">${ppTrap(o.k)}</span>${esc(o.t)}<div class="pp-why">${
+          o.why?grX(o.why,wid&&wid[o.j],true):ppTrapDesc(o.k)}</div></div>`).join("")+
+      `</div><div class="msec"><h4>${ppH("keys")}</h4>`+
       q.keys.split("; ").map(k=>{const [a,b]=k.split(" → ");
         return `<div class="pp-key"><span class="pp-from">${esc(a)}</span> → <span class="pp-to">${esc(b)}</span></div>`;}).join("")+`</div>`;
   }else{
-    html+=`<div class="wp-result ${pick.k==="ok"?"ok":"bad"}">${pick.k==="ok"?"✓ Correct":"Not quite"} — <b>${esc(q.a)}</b> → <b>${esc(q.b)}</b></div>`;
+    html+=`<div class="wp-result ${pick.k==="ok"?"ok":"bad"}">${pick.k==="ok"?ppT("right"):ppT("wrong")} — <b>${esc(q.a)}</b> → <b>${esc(q.b)}</b></div>`;
   }
-  html+=`<div class="wp-actions"><button class="wp-btn" onclick="ppIdx++;ppRender()">${ppIdx+1<ppQ.length?"Next →":"See results"}</button></div>`;
+  html+=`<div class="wp-actions"><button class="wp-btn" onclick="ppIdx++;ppRender()">${ppIdx+1<ppQ.length?ppT("next"):ppT("results")}</button></div>`;
   document.getElementById("ppFeedback").innerHTML=html;
 }
 function ppListenBar(){
   const used=ppOnce&&ppPlays>=1;
   return `<div class="pp-listen">
-      <button class="speak" onclick="ppPlay(0.9)" ${used?"disabled":""}>▶ ${ppPlays?"Play again":"Play recording"}</button>
-      ${ppOnce?"":`<button class="speak" onclick="ppPlay(0.7)">🐢 Slower</button>`}
+      <button class="speak" onclick="ppPlay(0.9)" ${used?"disabled":""}>▶ ${ppPlays?ppT("again"):ppT("play")}</button>
+      ${ppOnce?"":`<button class="speak" onclick="ppPlay(0.7)">🐢 ${ppT("slower")}</button>`}
       <span class="seg" style="margin-left:auto;">
-        <button class="${ppOnce?"":"on"}" onclick="ppSetOnce(false)">Practice</button>
-        <button class="${ppOnce?"on":""}" onclick="ppSetOnce(true)">Exam</button>
+        <button class="${ppOnce?"":"on"}" onclick="ppSetOnce(false)">${ppT("practice")}</button>
+        <button class="${ppOnce?"on":""}" onclick="ppSetOnce(true)">${ppT("exam")}</button>
       </span>
     </div>
-    <div class="note" style="margin-top:4px;">${ppOnce?(used?"Played once — in the exam you hear each recording only once.":"Exam mode: you can listen only once."):
-      (ppPlays?`Played ${ppPlays}×`:"Practice mode: replay as often as you like.")}</div>`;
+    <div class="note" style="margin-top:4px;">${ppOnce?(used?ppX("usedOnce"):ppX("examNote")):
+      (ppPlays?ppT("played",ppPlays):ppX("practiceNote"))}</div>`;
 }
 function ppPlay(rate){
   if(ppDone||(ppOnce&&ppPlays>=1))return;
@@ -5278,12 +5377,13 @@ function ppFinish(){
   document.getElementById("ppBox").innerHTML=`
     <div class="vt-score">
       <div class="big">${ppScore} / ${total}</div>
-      <p class="meaning">${Math.round(ppScore/total*100)}% correct</p>
-      ${fell.length?`<div class="pp-exp" style="text-align:left;"><div class="msec" style="margin-top:0;"><h4>Traps you fell for</h4></div>`+
-        fell.map(([k,c])=>`<div class="pp-exp-row"><span class="pp-tag">${PP_TRAPS[k][0]}</span>×${c}<div class="pp-why">${PP_TRAPS[k][1]}</div></div>`).join("")+`</div>`:""}
-      <div class="wp-actions" style="justify-content:center;"><button class="wp-btn" onclick="ppStart()">New round</button></div>
+      <p class="meaning">${ppT("pct",Math.round(ppScore/total*100))}</p>
+      ${fell.length?`<div class="pp-exp" style="text-align:left;"><div class="msec" style="margin-top:0;"><h4>${ppH("fell")}</h4></div>`+
+        fell.map(([k,c])=>`<div class="pp-exp-row"><span class="pp-tag">${ppTrap(k)}</span>×${c}<div class="pp-why">${ppTrapDesc(k)}</div></div>`).join("")+`</div>`:""}
+      <div class="wp-actions" style="justify-content:center;"><button class="wp-btn" onclick="ppStart()">${ppT("again2")}</button></div>
     </div>`;
 }
+function ppRelang(){if(ppQ.length)ppRender(true);}
 
 // ===================== VERB FORM TRAINER =====================
 // Question bank covering: base form, 3rd-person -s, past -ed, present continuous,
