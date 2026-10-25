@@ -46,6 +46,8 @@
   .wod .e{font-size:.95rem;} .wod .e b{color:var(--accent);}
   .controls{background:var(--surface);border:1px solid var(--line);border-radius:14px;
     padding:1.1rem 1.2rem;margin-bottom:1.25rem;position:sticky;top:8px;z-index:5;}
+  /* on phones the search panel scrolls with the page so it doesn't cover long sections */
+  @media (max-width:700px){.controls{position:static;}}
   .search-row{display:flex;gap:10px;}
   input[type=text]{flex:1;font-family:inherit;font-size:1rem;padding:11px 14px;border:1px solid var(--line);
     border-radius:10px;background:var(--bg);color:var(--ink);}
@@ -5277,7 +5279,7 @@ function wpPickClozeWord(){
   const pool=STUDY.concat(myWords).filter(x=>x.e&&x.e.toLowerCase().includes(x.w.toLowerCase().split(/[ /]/)[0]));
   return pool[Math.floor(Math.random()*pool.length)];
 }
-function wpNewCloze(){
+function wpNewCloze(noFocus){
   const x=wpPickClozeWord();
   if(!x){document.getElementById("wpBox").innerHTML='<p class="empty">No suitable words for cloze yet.</p>';return;}
   const base=x.w.toLowerCase().split(/[ /]/)[0];
@@ -5296,7 +5298,8 @@ function wpNewCloze(){
       <button class="wp-btn secondary" onclick="wpNewCloze()">Next →</button>
     </div>
     <div id="wpResult"></div>`;
-  setTimeout(()=>{const a=document.getElementById("wpAnswer");if(a)a.focus();},50);
+  // only focus after the student interacts — focusing on page load scrolls the page down to here
+  if(!noFocus)setTimeout(()=>{const a=document.getElementById("wpAnswer");if(a)a.focus();},50);
 }
 function wpCheckCloze(correct,word){
   const ans=document.getElementById("wpAnswer").value.trim().toLowerCase();
@@ -5448,7 +5451,7 @@ function wpNewColl(){
 }
 
 // init writing practice on load
-function wpInit(){wpNewCloze();}
+function wpInit(){wpNewCloze(true);}
 
 // ---------- dark / light theme ----------
 function toggleTheme(){
