@@ -258,6 +258,16 @@
   .tp-lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-family:system-ui,sans-serif;font-weight:700;}
   .tp-chip{font-family:system-ui,sans-serif;font-size:.82rem;background:var(--bg);border-radius:999px;padding:3px 11px;}
   .tp-chip b{color:var(--accent);}
+  .pp-orig{font-size:1.08rem;line-height:1.6;background:var(--bg);border-left:3px solid var(--accent);
+    border-radius:0 10px 10px 0;padding:10px 14px;margin:6px 0 4px;}
+  .pp-exp{margin-top:14px;}
+  .pp-exp-row{padding:9px 0;border-top:1px solid var(--line);font-size:.94rem;}
+  .pp-tag{display:inline-block;font-family:system-ui,sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;padding:2px 9px;border-radius:999px;margin-right:7px;background:var(--C2bg);color:var(--C2);}
+  .pp-tag.ok{background:var(--A2bg);color:var(--ok);}
+  .pp-why{font-size:.84rem;color:var(--muted);font-family:system-ui,sans-serif;margin-top:3px;}
+  .pp-key{font-size:.94rem;margin-bottom:5px;}
+  .pp-from{color:var(--muted);} .pp-to{color:var(--accent);font-weight:600;}
 </style>
 </head>
 <body>
@@ -341,6 +351,13 @@
   <div class="wp-box" id="dtBox">
     <p class="wp-hint" style="margin:0;">Listen and type the word you hear. IELTS Listening marks misspelt answers wrong, so every letter counts. British and American spellings are both accepted.</p>
   </div>
+
+  <div class="section-title">Paraphrase trainer</div>
+  <div class="wp-tabs">
+    <button class="wp-tab on" id="ppSentTab" onclick="ppSwitch('sent')">Sentences</button>
+    <button class="wp-tab" id="ppSwapTab" onclick="ppSwitch('swap')">Word swaps</button>
+  </div>
+  <div class="wp-box" id="ppBox"></div>
 
   <div class="section-title">Writing practice</div>
   <div class="wp-tabs">
@@ -1326,6 +1343,218 @@ function dtFinish(){
     </div>`;
 }
 
+// ===================== PARAPHRASE TRAINER =====================
+// IELTS Reading and Listening rarely repeat the words of the question: correct answers are
+// paraphrased, and wrong options are built from a few common traps.
+const PP_TRAPS={
+  opp:["Opposite meaning","It says the opposite of the original."],
+  strong:["Too strong","It overstates the original — watch for all, always, only, never, completely."],
+  ng:["Not given","It adds information that the original never mentions."],
+  detail:["Wrong detail","It changes a key detail such as a number, person or place."],
+  swap:["Same words, new meaning","It reuses the original words but changes who does what, or cause and effect."],
+  time:["Wrong time","It changes when something happens."],
+};
+// s = original, ok = correct paraphrase, traps = [sentence, trap type, explanation], keys = "original → paraphrase; …"
+const PP_SENT=[
+ {s:"The number of people living in cities has risen sharply over the past fifty years.",
+  ok:"Urban populations have grown dramatically in the last half-century.",
+  traps:[["The number of people leaving cities has risen sharply over the past fifty years.","detail","“Leaving”, not “living in” — one word changes the meaning."],
+         ["City populations have fallen slightly over the past fifty years.","opp","The original says the number rose sharply."],
+         ["Urban populations have grown dramatically, causing a housing crisis.","ng","The original says nothing about a housing crisis."]],
+  keys:"the number of people living in cities → urban populations; risen sharply → grown dramatically; the past fifty years → the last half-century"},
+ {s:"Most experts agree that regular exercise reduces the risk of heart disease.",
+  ok:"There is broad agreement among specialists that frequent physical activity lowers the chance of developing heart problems.",
+  traps:[["All experts agree that regular exercise completely prevents heart disease.","strong","“Most” became “all”, and “reduces the risk” became “completely prevents”."],
+         ["Experts disagree about whether exercise has any effect on heart disease.","opp","The original says most experts agree."],
+         ["Most experts agree that heart disease reduces people's ability to exercise regularly.","swap","Same words, but cause and effect are reversed."]],
+  keys:"most experts agree → broad agreement among specialists; regular exercise → frequent physical activity; reduces the risk → lowers the chance"},
+ {s:"Children who read for pleasure tend to perform better at school.",
+  ok:"Pupils who enjoy reading in their free time generally achieve higher academic results.",
+  traps:[["Children who perform well at school are made to read more.","swap","Same idea of reading and school, but the link is reversed."],
+         ["Reading for pleasure guarantees that children will do well at school.","strong","“Tend to” describes a tendency, not a guarantee."],
+         ["Children who read for pleasure spend less time on homework.","ng","Homework is never mentioned."]],
+  keys:"children → pupils; read for pleasure → enjoy reading in their free time; tend to → generally; perform better at school → achieve higher academic results"},
+ {s:"The museum is closed to the public on Mondays, except during school holidays.",
+  ok:"Apart from the school holiday period, visitors cannot enter the museum on Mondays.",
+  traps:[["The museum is closed every Monday, including during school holidays.","opp","The original makes an exception for school holidays."],
+         ["The museum is closed to the public during school holidays.","detail","It is closed on Mondays — school holidays are the exception."],
+         ["The museum is at its busiest on Mondays during school holidays.","ng","Visitor numbers are never mentioned."]],
+  keys:"except during school holidays → apart from the school holiday period; closed to the public → visitors cannot enter"},
+ {s:"Although the drug proved effective in trials, it caused side effects in a small number of patients.",
+  ok:"The medicine worked well in testing, but a minority of patients experienced unwanted reactions.",
+  traps:[["The drug failed in trials because it caused side effects in most patients.","opp","The drug was effective, and only a small number had side effects."],
+         ["The drug was effective in trials and caused no side effects at all.","detail","Some patients did have side effects."],
+         ["Because of its side effects, the drug was withdrawn after the trials.","ng","Nothing is said about withdrawing the drug."]],
+  keys:"drug → medicine; proved effective → worked well; trials → testing; a small number of → a minority of; side effects → unwanted reactions"},
+ {s:"The government plans to ban petrol cars by 2035.",
+  ok:"The authorities intend to outlaw petrol-powered vehicles by 2035.",
+  traps:[["The government banned petrol cars in 2035.","time","“Plans to” is a future intention, not something that has happened."],
+         ["The government plans to encourage people to buy petrol cars until 2035.","opp","A ban is the opposite of encouragement."],
+         ["The government plans to ban all cars by 2035.","strong","Only petrol cars, not all cars."]],
+  keys:"the government → the authorities; plans to → intend to; ban → outlaw; petrol cars → petrol-powered vehicles"},
+ {s:"Tourism accounts for roughly a third of the island's income.",
+  ok:"Around 33 per cent of the island's earnings come from the tourist industry.",
+  traps:[["Tourism accounts for more than half of the island's income.","detail","A third is not more than half."],
+         ["A third of the island's tourists come from abroad.","swap","Same words, but now it is about tourists, not income."],
+         ["Tourism is the island's only source of income.","strong","A third is not all of it."]],
+  keys:"roughly → around; a third → 33 per cent; income → earnings; tourism → the tourist industry"},
+ {s:"Few students chose to live on campus in their final year.",
+  ok:"Only a small number of final-year students decided to stay in university accommodation.",
+  traps:[["Many students chose to live on campus in their final year.","opp","“Few” means not many."],
+         ["No students lived on campus in their final year.","strong","“Few” is not the same as “none”."],
+         ["Few students could afford to live on campus in their final year.","ng","The original gives no reason, such as cost."]],
+  keys:"few → only a small number; chose → decided; live on campus → stay in university accommodation"},
+ {s:"The bridge was designed by a local engineer but built by a foreign company.",
+  ok:"Although a local engineer drew up the plans for the bridge, an overseas firm constructed it.",
+  traps:[["A foreign engineer designed the bridge, and a local company built it.","swap","Local and foreign have been swapped."],
+         ["The bridge was both designed and built by local people.","detail","A foreign company built it."],
+         ["The bridge was designed by a local engineer and took ten years to build.","ng","How long it took is never mentioned."]],
+  keys:"designed → drew up the plans; built → constructed; foreign company → overseas firm"},
+ {s:"Unemployment has remained stable despite the economic downturn.",
+  ok:"Even though the economy has weakened, the jobless rate has not changed significantly.",
+  traps:[["Unemployment has risen because of the economic downturn.","opp","It remained stable."],
+         ["The economic downturn has remained stable despite unemployment.","swap","Same words in a different order — a different meaning."],
+         ["Unemployment has remained stable, and the economy is expected to recover soon.","ng","No prediction about recovery is made."]],
+  keys:"unemployment → the jobless rate; remained stable → not changed significantly; despite → even though; the economic downturn → the economy has weakened"},
+ {s:"It is not essential to book in advance, but it is recommended at weekends.",
+  ok:"Reservations are not compulsory, though they are advisable on Saturdays and Sundays.",
+  traps:[["Visitors must book in advance at weekends.","strong","“Recommended” is advice, not a rule."],
+         ["Booking in advance is not recommended at weekends.","opp","It is recommended at weekends."],
+         ["Booking in advance is cheaper at weekends.","ng","Price is never mentioned."]],
+  keys:"not essential → not compulsory; book in advance → reservations; recommended → advisable; weekends → Saturdays and Sundays"},
+ {s:"Older employees are often more loyal to their companies than younger workers.",
+  ok:"Senior members of staff frequently show greater commitment to their employers than their younger colleagues do.",
+  traps:[["Older employees are always more loyal than younger workers.","strong","“Often” became “always”."],
+         ["Younger workers are often more loyal to their companies than older employees.","swap","Older and younger have been swapped."],
+         ["Older employees are often paid more than younger workers.","ng","Pay is never mentioned."]],
+  keys:"older employees → senior members of staff; often → frequently; more loyal → greater commitment; companies → employers"},
+ {s:"The library's opening hours will be extended from next month.",
+  ok:"From next month, the library will stay open for longer.",
+  traps:[["The library's opening hours were extended last month.","time","It will happen next month, not last month."],
+         ["The library will open for fewer hours from next month.","opp","Extended means longer, not shorter."],
+         ["The library will hire more staff from next month.","ng","Staff are never mentioned."]],
+  keys:"opening hours will be extended → will stay open for longer"},
+ {s:"Scientists have yet to find a cure for the common cold.",
+  ok:"Researchers have still not discovered a way to cure the common cold.",
+  traps:[["Scientists have recently found a cure for the common cold.","opp","“Have yet to” means it has not happened."],
+         ["Scientists have stopped looking for a cure for the common cold.","ng","Nothing says they stopped looking."],
+         ["Scientists have proved that the common cold can never be cured.","strong","Not found yet is not the same as impossible."]],
+  keys:"scientists → researchers; have yet to → have still not; find → discovered"},
+ {s:"Sales of electric vehicles doubled between 2020 and 2022.",
+  ok:"The number of electric cars sold rose twofold over the two years from 2020.",
+  traps:[["Sales of electric vehicles halved between 2020 and 2022.","opp","Doubled, not halved."],
+         ["Electric vehicles became twice as expensive between 2020 and 2022.","swap","It is sales that doubled, not prices."],
+         ["Sales of electric vehicles doubled between 2020 and 2022, overtaking petrol cars.","ng","Petrol cars are never mentioned."]],
+  keys:"sales of electric vehicles → the number of electric cars sold; doubled → rose twofold; between 2020 and 2022 → over the two years from 2020"},
+ {s:"Participants were asked to avoid caffeine for 24 hours before the test.",
+  ok:"Those taking part were told not to consume caffeine during the day leading up to the test.",
+  traps:[["Participants were given caffeine 24 hours before the test.","opp","They were asked to avoid it."],
+         ["Participants had to avoid caffeine for 24 hours after the test.","detail","Before the test, not after."],
+         ["Participants who drank caffeine before the test were excluded.","ng","No one being excluded is mentioned."]],
+  keys:"participants → those taking part; asked to avoid → told not to consume; 24 hours before → the day leading up to"},
+ {s:"The new policy has been criticised for ignoring the needs of rural communities.",
+  ok:"Critics say the new policy fails to take into account what people in the countryside require.",
+  traps:[["The new policy has been praised for meeting the needs of rural communities.","opp","It was criticised, not praised."],
+         ["Rural communities have been criticised for ignoring the new policy.","swap","Same words, but now the communities are being criticised."],
+         ["The new policy will be cancelled because it ignores rural communities.","ng","Nothing is said about cancelling it."]],
+  keys:"has been criticised → critics say; ignoring → fails to take into account; needs → what people require; rural communities → people in the countryside"},
+ {s:"Only a minority of households recycle their plastic waste.",
+  ok:"Fewer than half of all homes recycle their plastic rubbish.",
+  traps:[["Most households recycle their plastic waste.","opp","A minority is fewer than half."],
+         ["No households recycle their plastic waste.","strong","A minority is not none."],
+         ["Only a minority of households produce plastic waste.","swap","Same words, but now it is about producing waste, not recycling it."]],
+  keys:"only a minority → fewer than half; households → homes; waste → rubbish"},
+ {s:"Prices are expected to fall slightly next year.",
+  ok:"A small decrease in prices is predicted for next year.",
+  traps:[["Prices fell slightly last year.","time","It is a prediction for next year."],
+         ["Prices are expected to rise slightly next year.","opp","Fall, not rise."],
+         ["Prices are expected to fall dramatically next year.","strong","“Slightly” became “dramatically”."]],
+  keys:"are expected → is predicted; fall slightly → a small decrease"},
+ {s:"The festival attracts visitors from all over the world, although most come from neighbouring countries.",
+  ok:"People travel from across the globe to attend the festival, but the majority are from nearby nations.",
+  traps:[["Most visitors to the festival come from distant countries.","opp","Most come from neighbouring countries."],
+         ["The festival only attracts visitors from neighbouring countries.","strong","Visitors come from all over the world."],
+         ["The festival attracts more visitors every year.","ng","Growth in visitor numbers is never mentioned."]],
+  keys:"attracts visitors → people travel to attend; all over the world → across the globe; most → the majority; neighbouring countries → nearby nations"},
+];
+// word swaps, grouped so the wrong options are the same kind of word
+const PP_SWAP=Object.entries({
+  people:"elderly people=senior citizens; workers=employees; the government=the authorities; people from abroad=overseas visitors; young people=the younger generation; scientists=researchers",
+  amounts:"a third=33 per cent; most=the majority of; a minority of=a small proportion of; roughly=approximately; every year=annually; over fifty years=over half a century; in the past=previously; nowadays=at present",
+  verbs:"buy=purchase; help=assist; start=commence; show=demonstrate; think about=consider; find out=discover; put off=postpone; cut down on=reduce; deal with=tackle; look into=investigate; carry out=conduct; set up=establish",
+  describing:"compulsory=mandatory; not allowed=prohibited; cheap=inexpensive; expensive=costly; important=significant; harmful=detrimental; enough=sufficient; jobless=unemployed; free of charge=at no cost",
+  trends:"rise sharply=increase dramatically; fall slightly=decrease marginally; get worse=deteriorate; get better=improve; stay the same=remain stable; go up and down=fluctuate",
+  things:"city=urban area; countryside=rural area; way of life=lifestyle; health problems=medical conditions; jobs=employment; rubbish=waste",
+  linking:"because of=due to; but=however; also=in addition; so=as a result; for example=for instance",
+}).flatMap(([g,list])=>list.split("; ").map(p=>{const [a,b]=p.split("=");return {a,b,g};}));
+
+let ppMode="sent",ppQ=[],ppIdx=0,ppScore=0,ppFell={},ppOpts=[],ppDone=false;
+function ppSwitch(m){
+  ppMode=m;
+  document.getElementById("ppSentTab").classList.toggle("on",m==="sent");
+  document.getElementById("ppSwapTab").classList.toggle("on",m==="swap");
+  ppStart();
+}
+function ppStart(){
+  ppQ=shuffle(ppMode==="sent"?PP_SENT:PP_SWAP).slice(0,ppMode==="sent"?8:10);
+  ppIdx=0;ppScore=0;ppFell={};ppRender();
+}
+function ppRender(){
+  if(ppIdx>=ppQ.length){ppFinish();return;}
+  ppDone=false;
+  const q=ppQ[ppIdx],head=`<div class="vt-mode-row"><label>Question ${ppIdx+1} of ${ppQ.length}</label><label style="margin-left:auto;">Score ${ppScore}</label></div>`;
+  if(ppMode==="sent"){
+    ppOpts=shuffle([{t:q.ok,k:"ok"},...q.traps.map(([t,k,why])=>({t,k,why}))]);
+    document.getElementById("ppBox").innerHTML=head+`
+      <div class="wp-hint">Which sentence has the same meaning as this one?</div>
+      <div class="pp-orig">${esc(q.s)}</div>
+      <div class="qopts" id="ppOpts">${ppOpts.map((o,i)=>`<button class="qopt" onclick="ppAnswer(${i})">${esc(o.t)}</button>`).join("")}</div>
+      <div id="ppFeedback"></div>`;
+  }else{
+    ppOpts=shuffle([{t:q.b,k:"ok"},...shuffle(PP_SWAP.filter(x=>x.g===q.g&&x!==q)).slice(0,3).map(x=>({t:x.b,k:"no"}))]);
+    document.getElementById("ppBox").innerHTML=head+`
+      <div class="wp-hint">Choose the best paraphrase for:</div>
+      <div class="qword" style="margin:6px 0 2px;">${esc(q.a)}</div>
+      <div class="vt-options" id="ppOpts">${ppOpts.map((o,i)=>`<button class="vt-opt" onclick="ppAnswer(${i})">${esc(o.t)}</button>`).join("")}</div>
+      <div id="ppFeedback"></div>`;
+  }
+}
+function ppAnswer(i){
+  if(ppDone)return;ppDone=true;
+  const q=ppQ[ppIdx],pick=ppOpts[i];
+  document.querySelectorAll("#ppOpts button").forEach((b,j)=>{
+    b.disabled=true;
+    if(ppOpts[j].k==="ok")b.classList.add("correct");
+    else if(j===i)b.classList.add("wrong");
+  });
+  if(pick.k==="ok")ppScore++;
+  else if(ppMode==="sent")ppFell[pick.k]=(ppFell[pick.k]||0)+1;
+  let html;
+  if(ppMode==="sent"){
+    html=`<div class="pp-exp">`+ppOpts.map(o=>o.k==="ok"
+        ?`<div class="pp-exp-row"><span class="pp-tag ok">✓ Paraphrase</span>${esc(o.t)}<div class="pp-why">Same meaning, different words.</div></div>`
+        :`<div class="pp-exp-row"><span class="pp-tag">${PP_TRAPS[o.k][0]}</span>${esc(o.t)}<div class="pp-why">${esc(o.why||PP_TRAPS[o.k][1])}</div></div>`).join("")+
+      `</div><div class="msec"><h4>How it was paraphrased</h4>`+
+      q.keys.split("; ").map(k=>{const [a,b]=k.split(" → ");
+        return `<div class="pp-key"><span class="pp-from">${esc(a)}</span> → <span class="pp-to">${esc(b)}</span></div>`;}).join("")+`</div>`;
+  }else{
+    html=`<div class="wp-result ${pick.k==="ok"?"ok":"bad"}">${pick.k==="ok"?"✓ Correct":"Not quite"} — <b>${esc(q.a)}</b> → <b>${esc(q.b)}</b></div>`;
+  }
+  html+=`<div class="wp-actions"><button class="wp-btn" onclick="ppIdx++;ppRender()">${ppIdx+1<ppQ.length?"Next →":"See results"}</button></div>`;
+  document.getElementById("ppFeedback").innerHTML=html;
+}
+function ppFinish(){
+  const total=ppQ.length,fell=Object.entries(ppFell).sort((a,b)=>b[1]-a[1]);
+  document.getElementById("ppBox").innerHTML=`
+    <div class="vt-score">
+      <div class="big">${ppScore} / ${total}</div>
+      <p class="meaning">${Math.round(ppScore/total*100)}% correct</p>
+      ${fell.length?`<div class="pp-exp" style="text-align:left;"><div class="msec" style="margin-top:0;"><h4>Traps you fell for</h4></div>`+
+        fell.map(([k,c])=>`<div class="pp-exp-row"><span class="pp-tag">${PP_TRAPS[k][0]}</span>×${c}<div class="pp-why">${PP_TRAPS[k][1]}</div></div>`).join("")+`</div>`:""}
+      <div class="wp-actions" style="justify-content:center;"><button class="wp-btn" onclick="ppStart()">New round</button></div>
+    </div>`;
+}
+
 // ===================== VERB FORM TRAINER =====================
 // Question bank covering: base form, 3rd-person -s, past -ed, present continuous,
 // passive, gerund, future, present perfect.
@@ -1692,7 +1921,7 @@ function toggleTheme(){
   }catch(e){}
 })();
 
-tpOptions();wordOfDay();render();renderDashboard();wpInit();
+tpOptions();wordOfDay();render();renderDashboard();wpInit();ppStart();
 </script>
 <div class="overlay hidden" id="overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal" id="modal"></div>
