@@ -295,6 +295,8 @@
   .vt-blank.revealed{border-bottom-style:solid;border-color:var(--ok);color:var(--ok);}
   .gr-ex{background:var(--bg);border-radius:8px;padding:7px 12px;margin-bottom:6px;font-size:.97rem;}
   .gr-ex b{color:var(--accent);}
+  .gr-id{color:var(--muted);font-style:italic;margin-top:3px;font-size:.95em;}
+  .gr-id i{font-style:normal;}
 </style>
 </head>
 <body>
@@ -341,6 +343,7 @@
 
   <div class="section-title" style="margin-top:2rem;">Grammar course</div>
   <p class="count" id="grSummary"></p>
+  <div class="vt-mode-row"><label>Explanations / Penjelasan:</label><span class="seg" id="grLangSeg"><button data-l="en" onclick="grSetLang('en')">English</button><button data-l="id" onclick="grSetLang('id')">Indonesia</button><button data-l="both" onclick="grSetLang('both')">Keduanya</button></span></div>
   <div class="search-row" style="margin-bottom:10px;"><input type="text" id="grFind" placeholder="Find a grammar topic… (e.g. passive, since, articles)" oninput="grSearch()" /></div>
   <div id="grContinue" style="margin-bottom:10px;"></div>
   <div class="tp-grid" id="grGrid"></div>
@@ -2791,6 +2794,195 @@ const GRAMMAR=[
     ["___ from the edge — it's dangerous!",["Keep away","Keep back away","Keep off from"],"Don't go near → keep away from."]]},
 // @grammar-units-end
 ];
+// Indonesian translations of the explanations: {unit: {r:[rules], t:IELTS tip, w:[why for each question]}}
+const GR_ID={
+1:{r:["Bentuk: <b>am / is / are + verb-ing</b> — I'm working, she's reading, they aren't listening.",
+    "Dipakai untuk sesuatu yang sedang terjadi <b>sekarang</b>, saat kita berbicara. Kegiatannya sudah dimulai dan belum selesai.",
+    "Dipakai untuk sesuatu yang sedang berlangsung <b>di sekitar waktu sekarang</b>, walaupun tidak terjadi detik ini: <i>I'm reading a great novel this month.</i>",
+    "Dipakai dengan periode waktu yang mencakup sekarang: <b>today, this week, this term, this year</b>.",
+    "Dipakai untuk <b>perubahan yang sedang terjadi</b>: getting, becoming, rising, falling, improving, increasing."],
+ t:"Task 1 dan Speaking: jelaskan tren yang masih berlangsung — <i>The number of students learning online <b>is growing</b>.</i> Di Speaking Part 1: <i>I'm currently studying at …</i>",
+ w:["‘Listen!’ menunjukkan sedang terjadi sekarang → present continuous.",
+    "Sedang terjadi sekarang, dan kamu perlu is + -ing (raining saja tidak cukup).",
+    "Perubahan yang sedang berlangsung → present continuous.",
+    "‘At the moment’ → present continuous.",
+    "‘This week’ adalah periode di sekitar sekarang → present continuous."]},
+2:{r:["Bentuk: <b>I / you / we / they work</b> — <b>he / she / it works</b>. Jangan lupa <b>-s</b> untuk he/she/it (goes, watches, studies, has).",
+    "Dipakai untuk <b>fakta</b> dan hal yang selalu atau umumnya benar: <i>Water freezes at 0°C.</i>",
+    "Dipakai untuk <b>kebiasaan dan rutinitas</b>, dan untuk menyatakan seberapa sering: always, usually, often, sometimes, never, every day.",
+    "Kalimat tanya dan negatif memakai <b>do / does + bentuk dasar (V1)</b>: <i>Does she speak Arabic? He doesn't eat meat.</i> (bukan <i>doesn't eats</i>)",
+    "Beberapa kata kerja langsung menjadi tindakan saat diucapkan: <b>I promise, I agree, I suggest, I apologise, I refuse</b> — pakai simple, bukan -ing."],
+ t:"Task 2: kebenaran umum dan opini — <i>Many young people <b>spend</b> too much time online.</i> Speaking Part 1 (kebiasaan): <i>I usually <b>study</b> in the evening.</i>",
+ w:["She → tambahkan -es: teach → teaches.",
+    "Kalimat tanya dengan he/she/it → Does + bentuk dasar (V1).",
+    "Fakta yang selalu benar → present simple.",
+    "I → don't + bentuk dasar (V1).",
+    "Mengucapkan ‘I promise’ adalah tindakannya itu sendiri → present simple."]},
+3:{r:["<b>Continuous</b> (I am doing) = sedang terjadi sekarang atau di sekitar sekarang, belum selesai. <b>Simple</b> (I do) = hal secara umum, atau hal yang terjadi berulang-ulang.",
+    "Continuous untuk situasi <b>sementara</b>: <i>I'm staying with my aunt until my exams finish.</i> Simple untuk situasi <b>tetap</b>: <i>My aunt lives in the capital.</i>",
+    "<b>I always do</b> = setiap kali. <b>I'm always doing</b> = terlalu sering, biasanya menjengkelkan: <i>He's always borrowing my pen!</i>"],
+ t:"Jawaban Speaking Part 1 sering butuh keduanya: <i>I <b>live</b> in a small town, but at the moment I<b>'m studying</b> in the city.</i> Memakai keduanya dengan benar menunjukkan variasi grammar.",
+ w:["‘Usually’ = rutinitas → present simple.",
+    "Sedang terjadi sekarang → present continuous.",
+    "Situasi sementara → present continuous.",
+    "‘Usually’ → kalimat tanya present simple: What do you do?",
+    "Menanyakan kemampuan secara umum → present simple."]},
+4:{r:["Beberapa kata kerja menyatakan <b>keadaan</b>, bukan tindakan, dan biasanya tidak dipakai dalam bentuk continuous: <b>know, like, love, hate, want, need, prefer, believe, understand, remember, mean, belong, seem, contain</b>.",
+    "<b>think</b> = berpendapat → simple: <i>I think it's a good idea.</i> <b>think</b> = mempertimbangkan → continuous boleh: <i>I'm thinking about my future.</i>",
+    "<b>see, hear, smell, taste</b> biasanya memakai simple: <i>This soup tastes delicious.</i> <b>look</b> dan <b>feel</b> (bagaimana seseorang terlihat sekarang) boleh keduanya.",
+    "<b>am / is / are being</b> + kata sifat = bersikap seperti itu sekarang: <i>You're being very rude today.</i> Tidak untuk hal yang tidak bisa dikendalikan: <i>She's tired</i> (bukan <i>being tired</i>)."],
+ t:"Opini di Task 2 memakai <b>think / believe</b> dalam bentuk simple: <i>I believe that …</i>, <i>Many people think that …</i> — jangan pernah <i>I am believing</i>.",
+ w:["understand adalah kata kerja keadaan → present simple.",
+    "think = pendapatmu → present simple.",
+    "think = sedang berpikir sekarang → continuous boleh.",
+    "smell yang menjelaskan sifat/kualitas → present simple.",
+    "contain adalah kata kerja keadaan → present simple."]},
+5:{r:["Pakai past simple untuk <b>tindakan dan situasi yang sudah selesai</b> di masa lalu: <i>I visited my grandmother last weekend.</i>",
+    "Kata kerja beraturan ditambah <b>-ed</b> (played, studied, stopped). Banyak kata kerja umum tidak beraturan: go → went, buy → bought, write → wrote, put → put.",
+    "Kalimat tanya dan negatif: <b>did / didn't + bentuk dasar (V1)</b>: <i>Did you see it? I didn't go.</i> (bukan <i>didn't went</i>)",
+    "Bentuk lampau dari <b>be</b> adalah <b>was / were</b>: <i>I was tired. They were late. Were you at home?</i>"],
+ t:"Task 1: grafik tentang tahun-tahun lalu memerlukan past simple — <i>In 2010, sales <b>reached</b> a peak and then <b>fell</b>.</i> Cerita di Speaking Part 2: <i>Last year I <b>visited</b> …</i>",
+ w:["buy tidak beraturan: buy → bought.",
+    "Kalimat tanya past simple → Did + bentuk dasar (V1).",
+    "Setelah didn't, pakai bentuk dasar (V1).",
+    "Students berbentuk jamak → were.",
+    "Tahun yang sudah berlalu → past simple. rise → rose."]},
+6:{r:["Bentuk: <b>was / were + verb-ing</b>: <i>I was sleeping, they were playing.</i>",
+    "Dipakai untuk sesuatu yang <b>sedang berlangsung</b> pada waktu tertentu di masa lalu: <i>At 9 p.m. last night I was studying.</i>",
+    "Dipakai bersama past simple: tindakan yang lebih panjang (continuous) <b>disela</b> oleh tindakan yang lebih pendek (simple): <i>I was walking home when it started to rain.</i>",
+    "Jika satu tindakan terjadi <b>setelah</b> tindakan lain, pakai past simple untuk keduanya: <i>When the bell rang, we left the room.</i>",
+    "Kata kerja keadaan (know, want, like …) biasanya tidak dipakai dalam continuous: <i>I knew him well</i> (bukan <i>was knowing</i>)."],
+ t:"Speaking Part 2 (bercerita): gambarkan suasananya dengan past continuous — <i>It <b>was raining</b> and everyone <b>was rushing</b> home when …</i>",
+ w:["Sedang berlangsung pada pukul 8 → past continuous.",
+    "Tindakan pendek yang menyela → past simple (hurt → hurt).",
+    "Mereka sudah sedang berbicara ketika ia masuk → past continuous.",
+    "We → were; sedang berlangsung ketika suara itu terdengar.",
+    "Satu tindakan setelah tindakan lain → past simple."]},
+7:{r:["Bentuk: <b>have / has + past participle</b> (V3): <i>I've finished, she has gone, they haven't decided.</i>",
+    "Dipakai untuk tindakan lampau yang <b>hasilnya terasa sekarang</b>: <i>I've lost my wallet</i> (= sekarang aku tidak punya dompet).",
+    "Dipakai untuk menyampaikan <b>informasi baru</b> atau berita: <i>The government has announced new rules.</i>",
+    "<b>just</b> = baru saja · <b>already</b> = sudah (lebih cepat dari perkiraan) · <b>yet</b> = sampai sekarang (dalam kalimat tanya dan negatif, di akhir kalimat).",
+    "<b>has gone to</b> = sekarang ada di sana (atau sedang dalam perjalanan) · <b>has been to</b> = pernah ke sana lalu kembali."],
+ t:"Task 2 dan Speaking: jelaskan perubahan terbaru — <i>Technology <b>has changed</b> the way we learn.</i> Tense ini menghubungkan masa lalu dengan sekarang, yang sering ditanyakan dalam soal esai.",
+ w:["I → have + past participle (V3); hasilnya terasa sekarang (tidak ada kunci).",
+    "Dia tidak ada di sini sekarang → gone. (been berarti dia pergi lalu sudah kembali.)",
+    "yet diletakkan di akhir kalimat tanya.",
+    "just = baru saja.",
+    "Scientists berbentuk jamak → have + past participle (V3)."]},
+8:{r:["Dipakai untuk <b>periode waktu yang belum selesai</b> dan berlanjut sampai sekarang, misalnya sepanjang hidupmu: <i>Have you ever been to Bali? I've never eaten sushi.</i>",
+    "<b>ever</b> (dalam pertanyaan), <b>never</b>, <b>before</b>: <i>It's the best book I've ever read.</i> <b>been to</b> = pernah mengunjungi.",
+    "Dipakai dengan <b>recently, so far, in the last few days, since …</b>: <i>I've met lots of new people recently.</i>",
+    "Dipakai dengan waktu yang belum selesai: <b>today, this week, this year</b>: <i>I've drunk three glasses of water today.</i>",
+    "<b>It's the first / second time</b> + present perfect: <i>It's the first time I've flown.</i>"],
+ t:"Speaking sering menanyakan pengalaman: <i>Have you ever …?</i> → <i>Yes, I<b>'ve done</b> it twice.</i> Lalu pakai past simple untuk detailnya: <i>The first time <b>was</b> in 2022.</i>",
+ w:["You → have + past participle (V3) (ride → ridden).",
+    "It's the first time + present perfect.",
+    "Masih pagi (waktunya belum selesai) → present perfect.",
+    "the most … I've ever …",
+    "‘So far’ = sampai sekarang → present perfect."]},
+9:{r:["Bentuk: <b>have / has been + verb-ing</b>: <i>I've been waiting, it has been raining.</i>",
+    "Dipakai untuk kegiatan yang <b>baru saja berhenti</b>, sering kali hasilnya masih terlihat: <i>Your eyes are red. Have you been crying?</i>",
+    "Dipakai untuk kegiatan yang <b>dimulai di masa lalu dan masih berlangsung</b>, terutama dengan <b>how long, for, since</b>: <i>I've been learning English for six years.</i>",
+    "Juga untuk tindakan yang berulang sampai sekarang: <i>She's been going to the gym since January.</i>"],
+ t:"Pertanyaan yang sangat umum di Speaking Part 1: <i>How long have you been studying English?</i> → <i>I<b>'ve been studying</b> it for about six years.</i>",
+ w:["Kegiatan baru-baru ini dengan hasil yang terlihat sekarang → have you been + -ing.",
+    "Dimulai di masa lalu dan masih berlangsung + for → present perfect continuous.",
+    "Kegiatan sampai sekarang dengan hasil yang terlihat.",
+    "How long + masih berlangsung → present perfect continuous.",
+    "Kegiatan baru-baru ini yang menjelaskan hasilnya (tangan kotor)."]},
+10:{r:["<b>Continuous</b> (have been doing) fokus pada <b>kegiatannya</b> — mungkin belum selesai. <b>Simple</b> (have done) fokus pada <b>hasilnya</b> — tindakannya sudah selesai.",
+    "<b>How long</b> → biasanya continuous: <i>I've been reading this book for a week.</i> <b>How much / how many / how many times</b> → simple: <i>I've read 200 pages.</i>",
+    "Kata kerja keadaan (know, like, have untuk kepemilikan …) tetap memakai simple: <i>I've known her for years.</i>"],
+ t:"Task 1: pakai simple untuk jumlah total — <i>Sales <b>have increased</b> by 40%.</i> — dan continuous untuk proses yang masih berjalan — <i>The company <b>has been expanding</b> since 2015.</i>",
+ w:["Ada angka (how many) → present perfect simple.",
+    "How long + belum selesai → present perfect continuous.",
+    "How many → present perfect simple.",
+    "Pekerjaannya sudah selesai; yang penting hasilnya.",
+    "know adalah kata kerja keadaan → hanya simple."]},
+11:{r:["Untuk sesuatu yang dimulai di masa lalu dan <b>masih berlanjut sekarang</b>, pakai present perfect, bukan present: <i>I've lived here for ten years</i> (bukan <i>I live here for ten years</i>).",
+    "Bertanya dengan <b>How long have you …?</b>: <i>How long have they been married? How long have you had that phone?</i>",
+    "Dengan <b>live</b> dan <b>work</b>, simple dan continuous sama-sama boleh. Dengan <b>always</b>, pakai simple: <i>I've always wanted to visit Egypt.</i>",
+    "Kalimat negatif + <b>for / since</b> menunjukkan kapan terakhir kali: <i>I haven't seen her since Monday.</i>"],
+ t:"Speaking Part 1: <i>How long have you lived in your hometown?</i> → <i>I<b>'ve lived</b> there all my life.</i> (bukan <i>I live there since …</i>)",
+ w:["Dimulai tahun 2018 dan masih berlanjut → present perfect.",
+    "How long + have (kepemilikan) → present perfect simple.",
+    "Negatif + since = terakhir kali → present perfect.",
+    "always + present perfect simple: has always wanted.",
+    "Dimulai 25 tahun lalu dan masih berlanjut → have been."]},
+12:{r:["<b>for</b> + lamanya waktu: for two hours, for three days, for a long time.",
+    "<b>since</b> + titik awal: since 8 o'clock, since Monday, since 2019, since I was a child.",
+    "<b>When …?</b> menanyakan suatu titik waktu di masa lalu → past simple. <b>How long …?</b> → present perfect.",
+    "<b>It's (been) + waktu + since</b> + past simple: <i>It's two years since I last saw him.</i>",
+    "Jangan pakai for dengan <b>all</b>: <i>She has taught here all her life</i> (bukan <i>for all her life</i>)."],
+ t:"Task 1: <i><b>Since</b> 2010, the figure has doubled.</i> / <i>Prices have risen steadily <b>for</b> a decade.</i> Memakai for/since dengan benar adalah cara cepat menambah ketepatan.",
+ w:["half an hour adalah lamanya waktu → for.",
+    "2015 adalah titik awal → since.",
+    "Menanyakan titik waktu (past simple) → When.",
+    "It's + waktu + since …",
+    "‘we were children’ adalah titik awal → since."]},
+13:{r:["Present perfect memberi tahu kita tentang <b>situasi sekarang</b>: <i>She has broken her arm</i> (lengannya masih patah). Past simple hanya bercerita tentang masa lalu: <i>She broke her arm</i> (mungkin sekarang sudah sembuh).",
+    "Untuk kejadian baru atau terkini, sering kali keduanya boleh: <i>I've fixed the fan</i> / <i>I fixed the fan</i>.",
+    "Untuk hal yang <b>bukan baru</b> — sejarah, orang yang sudah meninggal — pakai past simple: <i>Shakespeare wrote 37 plays.</i>",
+    "Sampaikan berita dengan present perfect, lalu lanjutkan ceritanya dengan <b>past simple</b>: <i>I've cut my finger. — How did it happen? — I was slicing onions.</i>"],
+ t:"Pendahuluan Task 2: <i>The internet <b>has transformed</b> education</i> (situasi sekarang). Contoh sejarah: <i>In the 1990s, few schools <b>had</b> computers</i> (past simple).",
+ w:["Sejarah / bukan kejadian baru → past simple.",
+    "Melanjutkan cerita dengan detail → past simple.",
+    "Sekarang berangin lagi, jadi tidak ada ‘hasil sekarang’ → past simple.",
+    "Dia sudah tidak bekerja di sana sekarang → past simple.",
+    "Menanyakan detail setelah berita → past simple."]},
+14:{r:["Jangan pakai present perfect dengan <b>waktu yang sudah selesai</b>: yesterday, last week, in 2019, two days ago, when I was a child → past simple.",
+    "Bertanya dengan <b>When …?</b> dan <b>What time …?</b> memakai past simple: <i>When did you finish?</i>",
+    "Present perfect = periode <b>sampai sekarang</b> (today, this week, since 2020, recently). Past simple = periode yang <b>sudah selesai</b> (yesterday, last week, from 2015 to 2020).",
+    "<i>Have you seen Ana this morning?</i> (masih pagi) / <i>Did you see Ana this morning?</i> (sekarang sudah siang)."],
+ t:"Patokan Task 1: jika grafiknya berakhir di masa lalu (misalnya 1990–2010), pakai past simple dari awal sampai akhir. Jika sampai sekarang, kamu boleh menulis <i>has risen since …</i>",
+ w:["last Saturday adalah waktu yang sudah selesai → past simple.",
+    "this week belum selesai → present perfect.",
+    "What time + waktu yang sudah selesai → past simple.",
+    "Periode yang sudah selesai (from … to …) → past simple.",
+    "Periode yang sudah selesai di masa lalu → past simple."]},
+15:{r:["Bentuk: <b>had + past participle</b> (V3): <i>I had finished, she hadn't seen.</i>",
+    "Dipakai untuk mundur <b>lebih jauh ke masa lalu</b> — untuk sesuatu yang terjadi <b>sebelum</b> kejadian lampau lainnya: <i>When I arrived, the class had already started.</i>",
+    "Bandingkan: <i>When I arrived, the class started</i> (aku datang, lalu kelas dimulai) dan <i>When I arrived, the class had started</i> (kelas sudah dimulai sebelum aku datang).",
+    "Ini versi lampau dari present perfect: <i>I'm not hungry. I've eaten.</i> → <i>I wasn't hungry. I'd eaten.</i>"],
+ t:"Cerita di Speaking Part 2 dan contoh di Task 2: <i>Before smartphones became common, people <b>had relied</b> on paper maps.</i> Urutan waktu yang jelas menunjukkan penguasaan tense.",
+ w:["Dimulai sebelum kami datang → past perfect.",
+    "Kehilangan kunci terjadi sebelum ‘couldn't get in’ → past perfect.",
+    "Sebelum momen lampau itu → past perfect.",
+    "Mereka pergi sebelum momen lampau itu → past perfect.",
+    "Dia sudah menontonnya sebelum waktu lampau itu → past perfect."]},
+16:{r:["Bentuk: <b>had been + verb-ing</b>: <i>I had been working.</i>",
+    "Dipakai untuk kegiatan yang <b>sedang berlangsung sebelum</b> suatu momen di masa lalu, sering dengan hasil yang terlihat saat itu: <i>The road was wet. It had been raining.</i>",
+    "Dengan how long / for / since di masa lalu: <i>We'd been waiting for an hour when the bus finally came.</i>",
+    "Bandingkan: <i>was doing</i> = sedang berlangsung pada momen itu · <i>had been doing</i> = sedang berlangsung sebelum momen itu. Kata kerja keadaan tetap simple: <i>had known</i>."],
+ t:"Berguna di Speaking Part 2: <i>I <b>had been preparing</b> for months, so I felt ready.</i>",
+ w:["Sedang berlangsung sebelum momen lampau itu → past perfect continuous.",
+    "Berapa lama sebelum kejadian lampau → had been + -ing.",
+    "Kegiatan sebelum momen lampau itu, dengan hasil yang terlihat.",
+    "Lamanya waktu sampai momen lampau → past perfect continuous.",
+    "know adalah kata kerja keadaan → had known."]},
+17:{r:["Untuk kepemilikan, keluarga, penyakit, dan janji temu, <b>have</b> dan <b>have got</b> artinya sama: <i>I have a cold = I've got a cold.</i>",
+    "Dengan arti-arti ini, jangan pakai continuous: <i>We have a big house</i> (bukan <i>We're having</i>).",
+    "Kalimat tanya dan negatif: <i>Do you have …? / Have you got …?</i> — <i>I don't have / I haven't got.</i> Bentuk lampau: <b>had</b>, <b>did you have</b>, <b>didn't have</b>.",
+    "Untuk tindakan dan pengalaman — <b>have breakfast, a shower, a break, a party, fun, a problem, a good time</b> — pakai <b>have</b>, bukan have got. Di sini continuous boleh: <i>We're having lunch.</i>"],
+ t:"<i>Have got</i> boleh di Speaking, tetapi di Writing pakai <b>have</b>: <i>Many cities <b>have</b> serious traffic problems.</i>",
+ w:["Kepemilikan di masa lalu → had (biasanya tanpa got).",
+    "Pertanyaan tentang kepemilikan → Do you have …? (atau Have you got …?)",
+    "have lunch = tindakan → continuous boleh.",
+    "Penyakit → have / have got.",
+    "Pertanyaan tentang pengalaman lampau → Did you have …?"]},
+18:{r:["<b>used to + bentuk dasar (V1)</b> = sesuatu yang dulu sering kamu lakukan tetapi <b>sekarang tidak lagi</b>: <i>I used to play badminton every week.</i>",
+    "Juga untuk keadaan di masa lalu yang sekarang sudah tidak benar: <i>This café used to be a bookshop.</i>",
+    "Tidak ada bentuk present. Untuk sekarang, pakai present simple: <i>I used to live in a village, but now I live in the city.</i>",
+    "Kalimat tanya dan negatif: <b>Did you use to …? / I didn't use to …</b> (tanpa -d setelah did).",
+    "Jangan tertukar dengan <b>be used to + -ing</b> (= sudah terbiasa dengan sesuatu) — lihat Unit 61."],
+ t:"Task 2 dan Speaking (membandingkan dulu dan sekarang): <i>People <b>used to write</b> letters; now they send messages.</i> Cara alami untuk menunjukkan perubahan dari waktu ke waktu.",
+ w:["Keadaan lampau yang sekarang sudah tidak benar → used to + bentuk dasar (V1).",
+    "Kalimat tanya → Did you use to …?",
+    "There used to be … = dulu ada, sekarang tidak.",
+    "Setelah didn't → use to (tanpa -d).",
+    "Kebiasaan lampau yang sekarang sudah tidak dia lakukan → used to."]},
+// @gr-id-end
+};
 let grPart="",grUnit=0,grQs=[],grAns=[];
 
 function grLoad(){try{return JSON.parse(localStorage.getItem(GR_KEY)||"{}");}catch(e){return {};}}
@@ -2850,22 +3042,58 @@ function grBlank(s,opt){
   const parts=opt===undefined?null:opt.split(" … ");let k=0;
   return esc(s).replace(/___/g,()=>parts?`<span class="vt-blank revealed">${esc(parts[k++]||"")}</span>`:'<span class="vt-blank">___</span>');
 }
-function grOpenUnit(n){
+// ----- language of the explanations: "en", "id" (Bahasa Indonesia) or "both" -----
+const GR_TXT={
+  en:{rules:"The rules",ex:"Examples",err:"Common mistakes",tip:"IELTS tip",prac:"Practice — choose the right answer",
+      ok:"✓ Correct.",no:"✗ Not quite.",done:"✓ Unit complete",keep:"Keep practising",correct:"correct",again:"Try again",next:"Next",
+      need:"Read the rules again, then try once more. You need 80% to complete the unit.",
+      note:n=>`Follows Unit ${n} of <i>English Grammar in Use</i> (5th edition, Raymond Murphy). The explanations and exercises here are original.`},
+  id:{rules:"Aturan",ex:"Contoh",err:"Kesalahan umum",tip:"Tips IELTS",prac:"Latihan — pilih jawaban yang benar",
+      ok:"✓ Benar.",no:"✗ Belum tepat.",done:"✓ Unit selesai",keep:"Terus berlatih",correct:"benar",again:"Coba lagi",next:"Berikutnya",
+      need:"Baca lagi aturannya, lalu coba sekali lagi. Kamu perlu 80% untuk menyelesaikan unit ini.",
+      note:n=>`Mengikuti Unit ${n} dari <i>English Grammar in Use</i> (edisi ke-5, Raymond Murphy). Penjelasan dan latihan di sini adalah karya asli.`}};
+let grLang="en";try{grLang=localStorage.getItem("ielts_gr_lang")||"en";}catch(e){}
+let grPick=[];
+function grL(k){
+  if(grLang==="id")return GR_TXT.id[k];
+  if(grLang==="both")return GR_TXT.en[k]+" · "+GR_TXT.id[k].replace(/^[✓✗] /,"");
+  return GR_TXT.en[k];
+}
+// English text with its translation (HTML strings; plain=true escapes them)
+function grX(en,id,plain){
+  const f=s=>plain?esc(s):s;
+  if(grLang==="en"||!id)return f(en);
+  if(grLang==="id")return f(id);
+  return f(en)+`<div class="gr-id">${f(id)}</div>`;
+}
+function grLangUI(){
+  document.querySelectorAll("#grLangSeg button").forEach(b=>b.classList.toggle("on",b.dataset.l===grLang));
+}
+function grSetLang(l){
+  grLang=l;try{localStorage.setItem("ielts_gr_lang",l);}catch(e){}
+  grLangUI();
+  if(grUnit)grOpenUnit(grUnit,true);
+}
+function grOpenUnit(n,keep){
   const u=grGet(n);if(!u)return;
+  const tr=GR_ID[n];
+  if(!keep||grUnit!==n){
+    grQs=u.q.map(([s,opts,why],i)=>({s,a:opts[0],o:shuffle(opts),why,wid:tr&&tr.w[i]}));
+    grAns=grQs.map(()=>null);grPick=grQs.map(()=>null);
+  }
   grUnit=n;grPart=grPartOf(n).id;
   try{localStorage.setItem(GR_LAST,n);}catch(e){}
-  grQs=u.q.map(([s,opts,why])=>({s,a:opts[0],o:shuffle(opts),why}));grAns=grQs.map(()=>null);
   grRenderParts();
   const prev=grGet(n-1),next=grGet(n+1),p=grPartOf(n);
   document.getElementById("grArea").innerHTML=`
     <div class="gr-unit">
       <button class="clearbtn" style="font-size:.85rem;padding:0;" onclick="grOpenPart('${p.id}')">← ${esc(p.name)}</button>
       <div class="gr-head"><span class="gr-kicker">Unit ${u.n}</span><div class="gr-title">${esc(u.t)}</div>${u.f?`<div class="gr-f">${esc(u.f)}</div>`:""}</div>
-      <div class="msec"><h4>The rules</h4><ul class="gr-rules">${u.r.map(r=>`<li>${r}</li>`).join("")}</ul></div>
-      <div class="msec"><h4>Examples</h4>${u.ex.map(e=>`<div class="gr-ex">${e}</div>`).join("")}</div>
-      <div class="msec"><h4>Common mistakes</h4>${u.err.map(([w,c])=>`<div class="gr-err"><span class="gr-bad">✗ ${esc(w)}</span><span class="gr-good">✓ ${esc(c)}</span></div>`).join("")}</div>
-      <div class="gr-ielts"><span class="gr-kicker" style="color:var(--gold);">IELTS tip</span><div>${u.ielts}</div></div>
-      <div class="msec"><h4>Practice — choose the right answer</h4>
+      <div class="msec"><h4>${grL("rules")}</h4><ul class="gr-rules">${u.r.map((r,i)=>`<li>${grX(r,tr&&tr.r[i])}</li>`).join("")}</ul></div>
+      <div class="msec"><h4>${grL("ex")}</h4>${u.ex.map(e=>`<div class="gr-ex">${e}</div>`).join("")}</div>
+      <div class="msec"><h4>${grL("err")}</h4>${u.err.map(([w,c])=>`<div class="gr-err"><span class="gr-bad">✗ ${esc(w)}</span><span class="gr-good">✓ ${esc(c)}</span></div>`).join("")}</div>
+      <div class="gr-ielts"><span class="gr-kicker" style="color:var(--gold);">${grL("tip")}</span><div>${grX(u.ielts,tr&&tr.t)}</div></div>
+      <div class="msec"><h4>${grL("prac")}</h4>
         ${grQs.map((q,i)=>`<div class="gr-q"><div class="gr-qs" id="grqs${i}">${i+1}. ${grBlank(q.s)}</div>
           <div class="gr-opts" id="grq${i}">${q.o.map((o,j)=>`<button class="vt-opt" onclick="grAnswer(${i},${j})">${esc(o)}</button>`).join("")}</div>
           <div class="gr-why" id="grw${i}"></div></div>`).join("")}
@@ -2875,28 +3103,37 @@ function grOpenUnit(n){
         ${prev?`<button class="wp-btn secondary" onclick="grOpenUnit(${prev.n});grScroll()">← Unit ${prev.n}</button>`:"<span></span>"}
         ${next?`<button class="wp-btn secondary" onclick="grOpenUnit(${next.n});grScroll()">Unit ${next.n} →</button>`:""}
       </div>
-      <p class="note">Follows Unit ${u.n} of <i>English Grammar in Use</i> (5th edition, Raymond Murphy). The explanations and exercises here are original.</p>
+      <p class="note">${GR_TXT[grLang==="id"?"id":"en"].note(u.n)}</p>
     </div>`;
+  // after a language switch, show the answers already given
+  grPick.forEach((j,i)=>{if(j!==null)grMark(i,j);});
+  if(grAns.every(a=>a!==null))grShowResult();
 }
-function grAnswer(i,j){
-  if(grAns[i]!==null)return;
-  const q=grQs[i],pick=q.o[j],ok=pick===q.a;grAns[i]=ok;
+function grMark(i,j){
+  const q=grQs[i],ok=q.o[j]===q.a;
   document.querySelectorAll(`#grq${i} button`).forEach((b,k)=>{
     b.disabled=true;
     if(q.o[k]===q.a)b.classList.add("correct");else if(k===j)b.classList.add("wrong");
   });
   document.getElementById("grqs"+i).innerHTML=`${i+1}. ${grBlank(q.s,q.a)}`;
-  document.getElementById("grw"+i).innerHTML=`<span class="${ok?"fb-ok":"fb-warn"}">${ok?"✓ Correct.":"✗ Not quite."}</span> ${esc(q.why)}`;
+  document.getElementById("grw"+i).innerHTML=`<span class="${ok?"fb-ok":"fb-warn"}">${grL(ok?"ok":"no")}</span> ${grX(q.why,q.wid,true)}`;
+}
+function grShowResult(){
+  const right=grAns.filter(Boolean).length,score=Math.round(right/grAns.length*100),next=grGet(grUnit+1);
+  document.getElementById("grResult").innerHTML=`<div class="wp-result ${score>=80?"ok":"bad"}" style="margin-top:14px;">
+    ${grL(score>=80?"done":"keep")} — ${right} / ${grAns.length} ${grL("correct")} (${score}%).
+    ${score>=80?"":grL("need")}
+    <div class="wp-actions"><button class="wp-btn secondary" onclick="grOpenUnit(${grUnit})">${grL("again")}</button>
+    ${next&&score>=80?`<button class="wp-btn" onclick="grOpenUnit(${next.n});grScroll()">${grL("next")}: Unit ${next.n} →</button>`:""}</div></div>`;
+}
+function grAnswer(i,j){
+  if(grAns[i]!==null)return;
+  grPick[i]=j;grAns[i]=grQs[i].o[j]===grQs[i].a;
+  grMark(i,j);
   if(grAns.every(a=>a!==null)){
     const score=Math.round(grAns.filter(Boolean).length/grAns.length*100);
     const prog=grLoad();prog[grUnit]=Math.max(prog[grUnit]||0,score);grSave(prog);
-    const next=grGet(grUnit+1);
-    document.getElementById("grResult").innerHTML=`<div class="wp-result ${score>=80?"ok":"bad"}" style="margin-top:14px;">
-      ${score>=80?"✓ Unit complete":"Keep practising"} — ${grAns.filter(Boolean).length} / ${grAns.length} correct (${score}%).
-      ${score>=80?"":"Read the rules again, then try once more. You need 80% to complete the unit."}
-      <div class="wp-actions"><button class="wp-btn secondary" onclick="grOpenUnit(${grUnit})">Try again</button>
-      ${next&&score>=80?`<button class="wp-btn" onclick="grOpenUnit(${next.n});grScroll()">Next: Unit ${next.n} →</button>`:""}</div></div>`;
-    grRenderParts();
+    grShowResult();grRenderParts();
   }
 }
 
@@ -4356,7 +4593,7 @@ function toggleTheme(){
   }catch(e){}
 })();
 
-tpOptions();wordOfDay();render();renderDashboard();wpInit();ppStart();grRenderParts();
+tpOptions();wordOfDay();render();renderDashboard();wpInit();ppStart();grRenderParts();grLangUI();
 </script>
 <div class="overlay hidden" id="overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal" id="modal"></div>
