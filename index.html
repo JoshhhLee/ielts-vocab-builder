@@ -224,6 +224,25 @@
   .vt-explain .vt-line{margin-bottom:4px;}
   .vt-score{text-align:center;padding:1rem;}
   .vt-score .big{font-size:2.4rem;font-weight:700;}
+  .ec-text{white-space:pre-wrap;line-height:1.9;font-size:1rem;background:var(--surface);border:1px solid var(--line);
+    border-radius:12px;padding:14px 18px;margin-top:12px;overflow-wrap:anywhere;}
+  .ec-text mark{border-radius:4px;padding:1px 2px;}
+  mark.ec-rep{background:transparent;color:inherit;text-decoration:underline wavy var(--C1);text-underline-offset:4px;}
+  mark.ec-basic{background:var(--goldbg);color:var(--gold);}
+  mark.ec-inf{background:var(--C2bg);color:var(--C2);}
+  mark.ec-link{background:var(--B2bg);color:var(--B2);}
+  mark.ec-awl{background:var(--A2bg);color:var(--ok);}
+  .ec-legend{display:flex;gap:6px;flex-wrap:wrap;font-family:system-ui,sans-serif;font-size:.78rem;}
+  .ec-legend mark{padding:2px 9px;border-radius:999px;}
+  .ec-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;}
+  .ec-row mark{border-radius:4px;padding:1px 6px;}
+  .ec-n{font-size:.8rem;color:var(--muted);}
+  .dt-play{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+  .dt-diff{margin-top:8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:1.15rem;letter-spacing:.08em;}
+  .dt-lbl{display:inline-block;min-width:92px;font-family:system-ui,sans-serif;font-size:.72rem;
+    letter-spacing:.04em;text-transform:uppercase;opacity:.8;}
+  .dt-bad{text-decoration:line-through;opacity:.75;}
+  .dt-fix{font-weight:700;text-decoration:underline;text-underline-offset:3px;}
 </style>
 </head>
 <body>
@@ -288,6 +307,22 @@
   </div>
   <div id="studyArea"></div>
 
+  <div class="section-title">Listening — spelling dictation</div>
+  <div class="study-bar">
+    <select id="dtDeck">
+      <option value="ielts" selected>IELTS Listening favourites</option>
+      <option value="miss">My misspelled words</option>
+      <option value="mine">My saved words</option>
+      <option value="B1">Level B1</option>
+      <option value="B2">Level B2</option>
+      <option value="awl">Academic (AWL)</option>
+    </select>
+    <button class="go" style="margin-top:0;" onclick="dtStart()">Start</button>
+  </div>
+  <div class="wp-box" id="dtBox">
+    <p class="wp-hint" style="margin:0;">Listen and type the word you hear. IELTS Listening marks misspelt answers wrong, so every letter counts. British and American spellings are both accepted.</p>
+  </div>
+
   <div class="section-title">Writing practice</div>
   <div class="wp-tabs">
     <button class="wp-tab on" id="wpClozeTab" onclick="wpSwitch('cloze')">Fill in the blank</button>
@@ -297,10 +332,18 @@
   </div>
   <div class="wp-box" id="wpBox"></div>
 
-  <div class="section-title">Practice — write a sentence using any word</div>
-  <textarea id="practice" placeholder="Write a sentence using a word you just learned…"></textarea>
-  <button class="go" onclick="checkSentence()">Check my sentence</button>
-  <div id="feedback" class="feedback hidden"></div>
+  <div class="section-title">Essay vocabulary checker</div>
+  <div class="study-bar">
+    <select id="ecTask" onchange="ecCount()">
+      <option value="250" selected>Task 2 essay (250+ words)</option>
+      <option value="150">Task 1 report (150+ words)</option>
+      <option value="0">Paragraph / sentence</option>
+    </select>
+  </div>
+  <textarea id="ecText" style="min-height:180px;" oninput="ecCount()" placeholder="Paste your essay or paragraph here…"></textarea>
+  <div class="note" id="ecLive">0 words</div>
+  <button class="go" onclick="ecCheck()">Check my vocabulary</button>
+  <div id="ecOut"></div>
 </div>
 
 <script>
@@ -334,6 +377,8 @@ function badge(l){const[fg,bg]=LVCOLOR[l]||["#444","#eee"];
   return `<span class="badge" style="color:${fg};background:${bg};">${l}</span>`;}
 function hl(s,w){const b=w.split(/[ /]/)[0];return s.replace(new RegExp(`(${b}[a-z]*)`,"gi"),"<b>$1</b>");}
 function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+let BANK_MAP=null;
+function bankGet(w){if(!BANK_MAP)BANK_MAP=new Map(BANK.map(x=>[x.w,x]));return BANK_MAP.get(w);}
 
 // ---------- level + alphabet controls ----------
 const lvWrap=document.getElementById("levels");
@@ -493,7 +538,8 @@ function renderDashboard(){
 function exportProgress(){
   const db=srsLoad();const st=localStorage.getItem(SRS_STREAK)||"{}";
   const mine=localStorage.getItem("ielts_mywords")||"[]";
-  const blob=new Blob([JSON.stringify({srs:db,streak:st,myWords:mine},null,2)],{type:"application/json"});
+  const dictMiss=localStorage.getItem(DT_MISS_KEY)||"[]";
+  const blob=new Blob([JSON.stringify({srs:db,streak:st,myWords:mine,dictMiss},null,2)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   a.download="ielts-progress-"+today()+".json";a.click();
 }
@@ -506,6 +552,7 @@ function importProgress(evt){
       if(d.srs)localStorage.setItem(SRS_KEY,JSON.stringify(d.srs));
       if(d.streak)localStorage.setItem(SRS_STREAK,d.streak);
       if(d.myWords){localStorage.setItem("ielts_mywords",d.myWords);myWords=loadMine();}
+      if(d.dictMiss)localStorage.setItem(DT_MISS_KEY,d.dictMiss);
       renderDashboard();render();
       alert("Progress imported successfully!");
     }catch(err){alert("Invalid file. Please use a file exported from this tool.");}
@@ -617,11 +664,11 @@ function finishStudy(){
 
 
 // ---------- word detail popup (Oxford-style) ----------
-function speak(word,accent){
+function speak(word,accent,rate){
   try{
     const u=new SpeechSynthesisUtterance(word);
     u.lang = accent==="GB" ? "en-GB" : "en-US";
-    u.rate=0.9;
+    u.rate=rate||0.9;
     const voices=speechSynthesis.getVoices();
     const v=voices.find(v=>v.lang===u.lang)||voices.find(v=>v.lang.startsWith(accent==="GB"?"en-GB":"en"));
     if(v)u.voice=v;
@@ -729,26 +776,327 @@ function quickSearch(word){
 function closeModal(){document.getElementById("overlay").classList.add("hidden");speechSynthesis.cancel();}
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
 
-// ---------- practice checker (offline) ----------
-function checkSentence(){
-  const raw=document.getElementById("practice").value.trim();
-  const fb=document.getElementById("feedback");fb.classList.remove("hidden");
-  if(!raw){fb.innerHTML='<div class="fb-line fb-warn">• Please write a sentence first.</div>';return;}
-  const lower=raw.toLowerCase();const lines=[];
-  const pool=BANK.concat(myWords);const hit=pool.find(x=>lower.includes(x.w));
-  if(hit)lines.push(["ok",`Great — you used "${hit.w}".`]);
-  else lines.push(["warn","Try to include a word you learned above."]);
-  lines.push(/^[A-Z]/.test(raw)?["ok","Starts with a capital letter."]:["warn","Start with a capital letter."]);
-  lines.push(/[.!?]$/.test(raw)?["ok","Ends with proper punctuation."]:["warn","End with a full stop (.)."]);
-  if(/\bi\b/.test(raw))lines.push(["warn",'Write "I" as a capital letter, always.']);
-  const wc=raw.split(/\s+/).length;
-  if(wc<6)lines.push(["warn",`Only ${wc} words — aim for 10+ to show range.`]);
-  else if(wc>40)lines.push(["warn",`${wc} words — very long; consider splitting it.`]);
-  else lines.push(["ok",`Good length (${wc} words).`]);
-  const link=["because","although","which","that","however","therefore","while","since","whereas"];
-  if(link.some(l=>lower.includes(l)))lines.push(["ok","Nice — a linking word shows complex structure."]);
-  else lines.push(["warn","Add a linker (because, although, which…) for a complex sentence."]);
-  fb.innerHTML=lines.map(([t,m])=>`<div class="fb-line fb-${t}">${t==="ok"?"✓":"•"} <span>${m}</span></div>`).join("");
+// ===================== ESSAY VOCABULARY CHECKER (offline) =====================
+// Highlights academic (AWL) words and linkers, flags basic / informal / repeated words.
+// EC_PHRASES maps a lowercase word or phrase (up to 4 words) to {k:"basic"|"inf"|"link", alt|tip}.
+const EC_PHRASES={};
+function ecAdd(k,forms,info){forms.forEach(f=>EC_PHRASES[f]={k,...info});}
+[
+  [["very important","extremely important"],["crucial","vital","essential"]],
+  [["very big","very large"],["enormous","substantial","vast"]],
+  [["very small"],["tiny","minimal","negligible"]],
+  [["very good"],["excellent","outstanding","highly effective"]],
+  [["very bad"],["severe","serious","detrimental"]],
+  [["very difficult","very hard"],["challenging","demanding","arduous"]],
+  [["very easy"],["straightforward","effortless"]],
+  [["very happy"],["delighted","thrilled"]],
+  [["very interesting"],["fascinating","compelling"]],
+  [["very common"],["widespread","prevalent"]],
+  [["very fast","very quick"],["rapid","swift"]],
+  [["very clear"],["evident","obvious"]],
+  [["very old"],["ancient","long-established"]],
+  [["a lot of","lots of"],["a great deal of","a large number of","numerous","considerable"]],
+  [["good"],["beneficial","positive","valuable","effective"]],
+  [["bad"],["harmful","detrimental","negative","damaging"]],
+  [["big","huge"],["substantial","significant","considerable","major"]],
+  [["small"],["minor","limited","modest"]],
+  [["very"],["extremely","highly","particularly"]],
+  [["really"],["genuinely","truly","considerably"]],
+  [["thing","things"],["aspect","factor","issue","element"]],
+  [["get","gets","got","getting"],["obtain","acquire","gain","receive"]],
+  [["nice"],["pleasant","appealing","enjoyable"]],
+  [["think"],["believe","argue","maintain","contend"]],
+  [["show","shows","showed"],["demonstrate","illustrate","indicate","reveal"]],
+  [["important"],["crucial","essential","vital","significant"]],
+  [["problem","problems"],["issue","challenge","difficulty","concern"]],
+  [["help","helps","helped"],["assist","support","facilitate","enable"]],
+  [["happy"],["content","satisfied","fulfilled"]],
+].forEach(([f,alt])=>ecAdd("basic",f,{alt}));
+[
+  [["gonna"],"write “going to”"],[["wanna"],"write “want to”"],[["gotta"],"write “have to”"],
+  [["kids"],"use “children”"],[["stuff"],"use “items”, “materials” or “belongings”"],[["guys"],"use “people”"],
+  [["ok","okay"],"use “acceptable” or “satisfactory”"],[["a bit"],"use “slightly” or “somewhat”"],
+  [["kind of","sort of"],"use “somewhat” or “rather”"],[["totally"],"use “completely” or “entirely”"],
+  [["awesome","cool"],"use “impressive” or “excellent”"],[["super"],"use “extremely”"],
+  [["etc"],"give a complete example instead of “etc.”"],
+  [["you","your"],"in essays, avoid addressing the reader — use “people”, “individuals” or “one”"],
+].forEach(([f,tip])=>ecAdd("inf",f,{tip}));
+const EC_LINK_ALT=[["however","nevertheless","nonetheless","on the other hand","in contrast"],
+  ["moreover","furthermore","in addition","additionally"],
+  ["therefore","thus","consequently","as a result","hence"],
+  ["for example","for instance"],["because","since"],["due to","because of"],["although","whereas"]];
+ecAdd("link",[...new Set(EC_LINK_ALT.flat().concat(["in conclusion","to sum up","in other words","as well as",
+  "firstly","secondly","finally","similarly","meanwhile","overall","while","despite"]))],{});
+const EC_STOP=new Set(("this that these those they them their there theirs have been being were will would should could "+
+  "might must with from into about because while which what when where than then also more most some such much very "+
+  "other others only both even same does many each over under just like make made take well upon onto within without "+
+  "through during before after between among against whether either neither every another itself themselves").split(" "));
+
+let AWL_SET=null;
+function ecAwl(w){
+  if(!AWL_SET)AWL_SET=new Set(BANK.filter(x=>x.awl).map(x=>x.w));
+  if(w.length<4)return null;
+  const c=[w,w.replace(/s$/,""),w.replace(/es$/,""),w.replace(/ies$/,"y"),w.replace(/ied$/,"y"),w.replace(/ed$/,""),
+    w.replace(/d$/,""),w.replace(/ing$/,""),w.replace(/ing$/,"e"),w.replace(/(\w)\1(ed|ing)$/,"$1"),w.replace(/ly$/,""),w.replace(/ally$/,"")];
+  return c.find(x=>x.length>=3&&AWL_SET.has(x))||null;
+}
+function ecContraction(w){
+  return /n't$/.test(w)||/^(i|you|we|they|he|she|it|that|there|what|here|who|let)'(m|re|s|ve|ll|d)$/.test(w);
+}
+function ecWords(raw){
+  return [...raw.matchAll(/[A-Za-z]+(?:['’][A-Za-z]+)*/g)]
+    .map(m=>({t:m[0],w:m[0].toLowerCase().replace(/’/g,"'"),s:m.index,e:m.index+m[0].length}));
+}
+function ecCount(){
+  const wc=ecWords(document.getElementById("ecText").value).length;
+  const target=+document.getElementById("ecTask").value;
+  document.getElementById("ecLive").textContent=wc+" word"+(wc===1?"":"s")+
+    (target?(wc>=target?` · meets the ${target}-word minimum`:` · ${target-wc} more to reach ${target}`):"");
+}
+// open a word's details (synonyms come from the dictionary API in the popup)
+function ecLook(w){
+  const x=bankGet(w);
+  if(x)openModal(JSON.stringify(x));
+  else{quickSearch(w);liveLookup();}
+}
+function ecCheck(){
+  const raw=document.getElementById("ecText").value;
+  const out=document.getElementById("ecOut");
+  if(!raw.trim()){out.innerHTML='<div class="feedback"><div class="fb-line fb-warn">• Paste or write some text first.</div></div>';return;}
+  const toks=ecWords(raw),target=+document.getElementById("ecTask").value;
+  const segs=[],basic={},inf={},link={},awl={},contr={},freq={};
+  const bump=(o,k)=>o[k]=(o[k]||0)+1;
+  for(let i=0;i<toks.length;){
+    let hit=null,n;
+    for(n=Math.min(4,toks.length-i);n>=1;n--){
+      // phrase words must be separated by whitespace only
+      let joined=true;
+      for(let k=i;k<i+n-1;k++)if(!/^\s+$/.test(raw.slice(toks[k].e,toks[k+1].s))){joined=false;break;}
+      if(!joined)continue;
+      const ph=toks.slice(i,i+n).map(x=>x.w).join(" ");
+      if(EC_PHRASES[ph]){hit={ph,...EC_PHRASES[ph]};break;}
+    }
+    if(!hit)n=1;
+    const seg={s:toks[i].s,e:toks[i+n-1].e,w:toks[i].w,cls:"",title:""};
+    if(hit){
+      bump({basic,inf,link}[hit.k],hit.ph);seg.cls="ec-"+hit.k;
+      seg.title=hit.alt?"Try: "+hit.alt.join(", "):hit.tip||"Linking word";
+    }else if(ecContraction(seg.w)){
+      bump(contr,seg.w);seg.cls="ec-inf";seg.title="Avoid contractions in formal writing";
+    }else{
+      const a=ecAwl(seg.w);
+      if(a){bump(awl,a);seg.cls="ec-awl";seg.title="Academic word: "+a;}
+      if(/^[a-z]{4,}$/.test(seg.w)&&!EC_STOP.has(seg.w))bump(freq,seg.w);
+    }
+    segs.push(seg);i+=n;
+  }
+  const rep=Object.entries(freq).filter(([,c])=>c>=3).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const repSet=new Set(rep.map(([w])=>w));
+  let textHTML="",pos=0;
+  segs.forEach(g=>{
+    const cls=(g.cls+(repSet.has(g.w)&&!g.cls.match(/basic|inf|link/)?" ec-rep":"")).trim();
+    if(!cls)return;
+    textHTML+=esc(raw.slice(pos,g.s))+`<mark class="${cls}" title="${esc(g.title||"Repeated word")}">${esc(raw.slice(g.s,g.e))}</mark>`;
+    pos=g.e;
+  });
+  textHTML+=esc(raw.slice(pos));
+
+  const sum=o=>Object.values(o).reduce((a,b)=>a+b,0);
+  const wc=toks.length,nAwl=Object.keys(awl).length,nLink=Object.keys(link).length;
+  const nBasic=sum(basic),nInf=sum(inf)+sum(contr);
+  const tile=(num,lbl,color)=>`<div class="stat-box"><div class="snum" style="color:${color}">${num}</div><div class="slbl">${lbl}</div></div>`;
+  const tiles=tile(wc,"Words",target&&wc<target?"var(--warn)":"var(--ink)")+
+    tile(nAwl,"Academic words","var(--ok)")+tile(nLink,"Linkers","var(--B2)")+
+    tile(nBasic,"Basic words",nBasic?"var(--gold)":"var(--ink)")+tile(nInf,"Informal",nInf?"var(--C2)":"var(--ink)");
+
+  const lines=[];
+  if(target)lines.push(wc>=target?["ok",`${wc} words — meets the ${target}-word minimum.`]:
+    ["warn",`${wc} words — ${target-wc} short of the ${target}-word minimum. Answers under the limit lose marks.`]);
+  if(nAwl)lines.push(["ok",`${nAwl} different academic word${nAwl===1?"":"s"}: ${Object.keys(awl).map(esc).join(", ")}.`]);
+  else{
+    const ideas=["significant","factor","approach","benefit","policy","impact","contribute"].filter(w=>ecAwl(w)===w);
+    lines.push(["warn",`No academic (AWL) words found. Precise academic words show lexical resource — e.g. ${ideas.join(", ")}.`]);
+  }
+  if(!nLink)lines.push(["warn","No linking words found — add however, therefore, for example… to connect your ideas."]);
+  else lines.push(["ok",`${nLink} different linking word${nLink===1?"":"s"}: ${Object.keys(link).map(esc).join(", ")}.`]);
+  Object.entries(link).filter(([,c])=>c>=3).forEach(([l,c])=>{
+    const alts=(EC_LINK_ALT.find(g=>g.includes(l))||[]).filter(x=>x!==l);
+    lines.push(["warn",`“${esc(l)}” used ${c} times — vary it${alts.length?": "+alts.map(esc).join(", "):""}.`]);
+  });
+  const lowerI=toks.filter(x=>x.t==="i").length;
+  if(lowerI)lines.push(["warn",`“i” written in lowercase ${lowerI} time${lowerI===1?"":"s"} — always write “I”.`]);
+  const lowerStarts=raw.split(/[.!?]+\s+/).filter(s=>/^[a-z]/.test(s.trim())).length;
+  if(lowerStarts)lines.push(["warn",`${lowerStarts} sentence${lowerStarts===1?" starts":"s start"} with a lowercase letter.`]);
+  if(raw.includes("!"))lines.push(["warn","Avoid exclamation marks in academic writing."]);
+
+  const chip=w=>`<button class="wfchip" onclick="ecLook('${esc(w)}')">${esc(w)}</button>`;
+  let detail="";
+  if(nBasic)detail+=`<div class="msec"><h4>Basic words — try a more precise word</h4>`+
+    Object.entries(basic).map(([ph,c])=>`<div class="ec-row"><mark class="ec-basic">${esc(ph)}</mark><span class="ec-n">×${c}</span> →
+      <span class="chiprow">${EC_PHRASES[ph].alt.map(chip).join("")}</span></div>`).join("")+`</div>`;
+  if(nInf)detail+=`<div class="msec"><h4>Informal language</h4>`+
+    Object.entries(inf).map(([ph,c])=>`<div class="ec-row"><mark class="ec-inf">${esc(ph)}</mark><span class="ec-n">×${c}</span> → ${EC_PHRASES[ph].tip}</div>`).join("")+
+    (sum(contr)?`<div class="ec-row"><mark class="ec-inf">${Object.keys(contr).map(esc).join(", ")}</mark> → write contractions in full (do not, it is…)</div>`:"")+`</div>`;
+  if(rep.length)detail+=`<div class="msec"><h4>Repeated words — tap one to find synonyms</h4><div class="chiprow">`+
+    rep.map(([w,c])=>`<button class="wfchip" onclick="ecLook('${esc(w)}')">${esc(w)} ×${c}</button>`).join("")+`</div></div>`;
+
+  out.innerHTML=`
+    <div class="dashboard" style="margin:14px 0 10px;">${tiles}</div>
+    <div class="ec-legend"><mark class="ec-awl">academic</mark><mark class="ec-link">linker</mark><mark class="ec-basic">basic word</mark><mark class="ec-inf">informal</mark><mark class="ec-rep">repeated</mark></div>
+    <div class="ec-text">${textHTML}</div>
+    <div class="feedback">${lines.map(([t,m])=>`<div class="fb-line fb-${t}">${t==="ok"?"✓":"•"} <span>${m}</span></div>`).join("")}${detail}</div>
+    <p class="note">This is an automatic vocabulary check, not a band score. Suggestions are hints — make sure each one fits your sentence.</p>`;
+}
+
+// ===================== LISTENING: SPELLING DICTATION =====================
+// IELTS Listening marks misspelt answers wrong. Words are read by the browser's UK voice.
+// "a|b" lists accepted spellings, British first.
+const DT_IELTS=("accommodation apartment appointment application approximately architecture assignment atmosphere "+
+  "attendance available average beginning brochure budget business calendar campus candidate catalogue|catalog "+
+  "cafeteria centre|center ceremony colleague colour|color committee communication community conference convenient "+
+  "curriculum deadline definitely deposit dictionary discount document embarrassed emergency employee entrance "+
+  "environment equipment especially exhibition experience facilities February foreign government guarantee guidance "+
+  "headquarters height immediately independent insurance interview jewellery|jewelry knowledge laboratory lecture "+
+  "leisure library licence|license maintenance management manufacture medicine membership necessary "+
+  "neighbourhood|neighborhood nutrition occasionally occupation opportunity organisation|organization orientation "+
+  "parliament participant passport pharmacy pollution population programme|program pronunciation psychology "+
+  "qualification questionnaire receipt receptionist recommend reference refrigerator registration restaurant rhythm "+
+  "schedule scholarship secretary seminar separate souvenir statistics supervisor surname technology temperature "+
+  "theatre|theater thoroughly tomorrow travelling|traveling tuition university vegetable vehicle Wednesday Thursday").split(" ");
+const DT_MISS_KEY="ielts_dict_miss";
+const DT_LEN=10;
+let dtQueue=[],dtIdx=0,dtScore=0,dtWrong=[],dtDone=false;
+
+function dtMissLoad(){try{return JSON.parse(localStorage.getItem(DT_MISS_KEY)||"[]");}catch(e){return [];}}
+function dtMissSave(a){try{localStorage.setItem(DT_MISS_KEY,JSON.stringify(a.slice(0,200)));}catch(e){}}
+function dtTarget(){return dtQueue[dtIdx].split("|")[0];}
+
+function dtDeckWords(sel){
+  const ok=w=>/^[a-z]{4,14}$/.test(w);
+  if(sel==="ielts")return DT_IELTS.slice();
+  if(sel==="miss")return dtMissLoad();
+  if(sel==="mine")return myWords.map(x=>x.w).filter(ok);
+  if(sel==="awl")return BANK.filter(x=>x.awl&&ok(x.w)).map(x=>x.w);
+  return BANK.filter(x=>x.l===sel&&ok(x.w)).map(x=>x.w);
+}
+function dtStart(){
+  const box=document.getElementById("dtBox");
+  if(!("speechSynthesis" in window)){
+    box.innerHTML='<p class="empty">This browser can’t read words aloud. Try Chrome, Safari or Edge.</p>';return;}
+  const sel=document.getElementById("dtDeck").value;
+  const words=dtDeckWords(sel);
+  if(!words.length){
+    box.innerHTML=`<p class="empty">${sel==="miss"?"No misspelled words yet — words you get wrong will collect here.":
+      "No single words to practise here yet. Save some words first, or pick another deck."}</p>`;return;}
+  dtBegin(shuffle(words).slice(0,DT_LEN));
+}
+function dtBegin(queue){dtQueue=queue;dtIdx=0;dtScore=0;dtWrong=[];dtRender();}
+
+function dtSay(rate){speak(dtTarget(),"GB",rate);}
+function dtContext(){
+  const x=bankGet(dtTarget().toLowerCase());
+  return x&&x.e&&x.e.toLowerCase().includes(x.w)?x.e:"";
+}
+function dtHint(){
+  const t=dtTarget();
+  document.getElementById("dtHint").textContent=`Starts with “${t[0]}” · ${t.length} letters`;
+}
+function dtRender(){
+  if(dtIdx>=dtQueue.length){dtFinish();return;}
+  dtDone=false;
+  document.getElementById("dtBox").innerHTML=`
+    <div class="vt-mode-row"><label>Word ${dtIdx+1} of ${dtQueue.length}</label><label style="margin-left:auto;">Score ${dtScore}</label></div>
+    <div class="dt-play">
+      <button class="speak" onclick="dtSay(0.85)">🔊 Play</button>
+      <button class="speak" onclick="dtSay(0.55)">🐢 Slower</button>
+      ${dtContext()?`<button class="speak" onclick="speak(dtContext(),'GB',0.9)">💬 In a sentence</button>`:""}
+      <button class="speak" onclick="dtHint()">💡 Hint</button>
+    </div>
+    <div class="wp-hint" id="dtHint"></div>
+    <input type="text" class="wp-input" id="dtAnswer" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+      placeholder="Type what you hear…" onkeydown="if(event.key==='Enter')dtDone?dtNext():dtCheck(false)" />
+    <div class="wp-actions" id="dtActions">
+      <button class="wp-btn" onclick="dtCheck(false)">Check</button>
+      <button class="wp-btn secondary" onclick="dtCheck(true)">I don’t know</button>
+    </div>
+    <div id="dtResult"></div>`;
+  setTimeout(()=>{const a=document.getElementById("dtAnswer");if(a)a.focus();},50);
+  dtSay(0.85);
+}
+
+// UK ↔ US spelling normaliser — only used together with a real-word check
+function dtUsUk(s){
+  return s.replace(/isation/g,"ization").replace(/is(e|ed|es|ing)$/,"iz$1").replace(/our(s|ed|ing|ite|ites|able|hood|ful)?$/,"or$1")
+    .replace(/tre(s)?$/,"ter$1").replace(/ogue(s)?$/,"og$1").replace(/ence$/,"ense").replace(/yse(s|d)?$/,"yze$1")
+    .replace(/([aeiou])ll(ed|ing|er|ers)$/,"$1l$2").replace(/mme(s)?$/,"m$1");
+}
+function dtAccepts(ans,item){
+  const forms=item.toLowerCase().split("|");
+  ans=ans.trim().toLowerCase();
+  if(forms.includes(ans))return true;
+  const t=forms[0];
+  // -ize words can always be written -ise in British English
+  if(t.length>=7&&/iz(e|ed|es|ing|ation|ations)$/.test(t)&&ans===t.replace(/iz(e|ed|es|ing|ation|ations)$/,"is$1"))return true;
+  return dtUsUk(ans)===dtUsUk(t)&&!!bankGet(ans);
+}
+// letter-by-letter comparison (edit distance with backtrace)
+function dtDiff(a,b){
+  const A=a.toLowerCase(),B=b.toLowerCase(),n=A.length,m=B.length;
+  const d=[...Array(n+1)].map((_,i)=>[...Array(m+1)].map((_,j)=>i?(j?0:i):j));
+  for(let i=1;i<=n;i++)for(let j=1;j<=m;j++)
+    d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(A[i-1]===B[j-1]?0:1));
+  const bad=c=>`<span class="dt-bad">${esc(c)}</span>`,fix=c=>`<span class="dt-fix">${esc(c)}</span>`;
+  let i=n,j=m,ha="",hb="";
+  while(i||j){
+    if(i&&j&&d[i][j]===d[i-1][j-1]+(A[i-1]===B[j-1]?0:1)){
+      const same=A[i-1]===B[j-1];
+      ha=(same?esc(a[i-1]):bad(a[i-1]))+ha;hb=(same?esc(b[j-1]):fix(b[j-1]))+hb;i--;j--;
+    }else if(j&&d[i][j]===d[i][j-1]+1){ha=bad("_")+ha;hb=fix(b[j-1])+hb;j--;}
+    else{ha=bad(a[i-1])+ha;i--;}
+  }
+  return {a:ha,b:hb,dist:d[n][m]};
+}
+function dtCheck(skip){
+  if(dtDone)return;
+  const item=dtQueue[dtIdx],target=dtTarget();
+  const inp=document.getElementById("dtAnswer"),result=document.getElementById("dtResult");
+  const ans=skip?"":inp.value.trim();
+  if(!skip&&!ans){result.innerHTML='<div class="wp-result bad">Type what you hear first — tap 🔊 to replay.</div>';return;}
+  dtDone=true;inp.readOnly=true;
+  document.getElementById("dtActions").innerHTML=`<button class="wp-btn" onclick="dtNext()">Next →</button>
+    <button class="wp-btn secondary" onclick="dtSay(0.85)">🔊 Hear it again</button>`;
+  const ok=!skip&&dtAccepts(ans,item);
+  const miss=dtMissLoad().filter(m=>m!==item);
+  if(ok)dtScore++;else{dtWrong.push(item);miss.unshift(item);}
+  dtMissSave(miss);
+  let html;
+  if(ok)html=`<div class="wp-result ok">✓ Correct — <b>${esc(target)}</b>${ans.toLowerCase()!==target.toLowerCase()?` (your spelling “${esc(ans)}” is also accepted)`:""}</div>`;
+  else if(skip)html=`<div class="wp-result bad">The word was <b>${esc(target)}</b>.</div>`;
+  else{
+    const df=dtDiff(ans,target);
+    html=`<div class="wp-result bad">${df.dist===1?"So close — one letter off.":"Not quite."}
+      <div class="dt-diff"><div><span class="dt-lbl">You wrote</span>${df.a}</div><div><span class="dt-lbl">Correct</span>${df.b}</div></div></div>`;
+  }
+  const alt=item.split("|").slice(1);
+  if(alt.length)html+=`<div class="wp-hint" style="margin-top:8px;">American spelling also accepted: ${alt.map(esc).join(", ")}</div>`;
+  const x=bankGet(target.toLowerCase());
+  if(x)html+=`<div class="wp-hint" style="margin-top:8px;">${esc(x.p)} — ${esc(x.d)}</div>`;
+  result.innerHTML=html;
+}
+function dtNext(){dtIdx++;dtRender();}
+function dtFinish(){
+  const total=dtQueue.length,wrong=dtWrong.map(i=>i.split("|")[0]);
+  document.getElementById("dtBox").innerHTML=`
+    <div class="vt-score">
+      <div class="big">${dtScore} / ${total}</div>
+      <p class="meaning">${Math.round(dtScore/total*100)}% spelled correctly</p>
+      ${wrong.length?`<p class="meaning" style="font-size:.9rem;">To review: <b>${wrong.map(esc).join(", ")}</b><br>
+        <span style="font-size:.82rem;">Saved to “My misspelled words”.</span></p>`:""}
+      <div class="wp-actions" style="justify-content:center;">
+        ${wrong.length?`<button class="wp-btn" onclick="dtBegin(shuffle(dtWrong))">Practise mistakes</button>`:""}
+        <button class="wp-btn ${wrong.length?"secondary":""}" onclick="dtStart()">New round</button>
+      </div>
+    </div>`;
 }
 
 // ===================== VERB FORM TRAINER =====================
