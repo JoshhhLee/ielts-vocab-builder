@@ -48,6 +48,38 @@
     padding:1.1rem 1.2rem;margin-bottom:1.25rem;position:sticky;top:8px;z-index:5;}
   /* on phones the search panel scrolls with the page so it doesn't cover long sections */
   @media (max-width:700px){.controls{position:static;}}
+  .controls{top:calc(var(--navh,0px) + 8px);}
+  /* section menu: a bar at the top on wide screens, a tab bar at the bottom on phones */
+  .appnav{position:sticky;top:0;z-index:20;display:flex;gap:4px;background:var(--bg);
+    margin:-2rem 0 1.25rem;padding:10px 0;border-bottom:1px solid var(--line);font-family:system-ui,sans-serif;}
+  .appnav button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid transparent;
+    background:none;color:var(--muted);border-radius:10px;padding:7px 4px;font-size:.85rem;cursor:pointer;white-space:nowrap;}
+  .appnav button:hover{color:var(--ink);background:var(--surface);}
+  .appnav button.on{color:var(--accent);background:var(--surface);border-color:var(--accent);font-weight:600;}
+  .appnav .ni{font-size:1.05rem;line-height:1;}
+  @media (max-width:700px){
+    body{padding-bottom:6rem;}
+    .appnav{position:fixed;left:0;right:0;bottom:0;top:auto;margin:0;gap:0;padding:4px 2px calc(4px + env(safe-area-inset-bottom));
+      background:var(--surface);border-bottom:0;border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.06);}
+    .appnav button{flex-direction:column;gap:2px;padding:5px 0;font-size:.64rem;border:0;border-radius:8px;min-width:0;}
+    .appnav button.on{border:0;background:var(--C2bg);}
+    .appnav .ni{font-size:1.25rem;}
+  }
+  .pane-head{border-bottom:2px solid var(--ink);padding-bottom:.75rem;margin-bottom:1.25rem;}
+  .pane-head h2{font-size:1.7rem;margin:0 0 2px;letter-spacing:-.02em;}
+  .pane-head p{margin:0;color:var(--muted);font-style:italic;font-size:.95rem;}
+  .pane-head + .section-title{margin-top:0;}
+  .home-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;}
+  .home-card{display:flex;flex-direction:column;gap:2px;text-align:left;background:var(--surface);color:var(--ink);
+    border:1px solid var(--line);border-radius:14px;padding:1rem 1.1rem;cursor:pointer;font:inherit;transition:border-color .15s,transform .15s;}
+  .home-card:hover{border-color:var(--accent);transform:translateY(-1px);}
+  .home-card .hc-top{display:flex;align-items:center;gap:8px;}
+  .home-card .hc-icon{font-size:1.5rem;line-height:1;}
+  .home-card .hc-title{font-size:1.15rem;font-weight:700;}
+  .home-card .hc-go{margin-left:auto;color:var(--accent);}
+  .home-card .hc-desc{color:var(--muted);font-size:.92rem;line-height:1.45;}
+  .home-card .hc-desc .gr-id{font-size:.95em;}
+  .home-card .hc-stat{margin-top:6px;font-family:system-ui,sans-serif;font-size:.75rem;color:var(--accent);font-weight:600;}
   .search-row{display:flex;gap:10px;}
   input[type=text]{flex:1;font-family:inherit;font-size:1rem;padding:11px 14px;border:1px solid var(--line);
     border-radius:10px;background:var(--bg);color:var(--ink);}
@@ -303,6 +335,16 @@
 </head>
 <body>
 <div class="wrap">
+  <nav class="appnav" id="appnav" aria-label="Sections">
+    <button data-go="home" onclick="go('home')"><span class="ni">🏠</span><span class="nl">Home</span></button>
+    <button data-go="dict" onclick="go('dict')"><span class="ni">🔎</span><span class="nl">Dictionary</span></button>
+    <button data-go="vocab" onclick="go('vocab')"><span class="ni">🗂️</span><span class="nl">Vocabulary</span></button>
+    <button data-go="grammar" onclick="go('grammar')"><span class="ni">📘</span><span class="nl">Grammar</span></button>
+    <button data-go="skills" onclick="go('skills')"><span class="ni">🎧</span><span class="nl">Listen &amp; Read</span></button>
+    <button data-go="writing" onclick="go('writing')"><span class="ni">✍️</span><span class="nl">Writing</span></button>
+  </nav>
+
+  <section class="pane" id="pane-home" data-pane="home">
   <header>
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
     <h1>English Dictionary</h1>
@@ -314,6 +356,20 @@
 
   <div class="wod" id="wod"></div>
 
+  <div class="section-title">What do you want to study?</div>
+  <div class="home-grid" id="homeMenu"></div>
+
+  <div class="section-title">Your progress</div>
+  <div class="dashboard" id="dashboard"></div>
+  <div class="exp-row">
+    <button class="exp-btn" onclick="exportProgress()">⬇ Export progress</button>
+    <label class="exp-btn" style="cursor:pointer;">⬆ Import progress<input type="file" accept=".json" style="display:none" onchange="importProgress(event)"></label>
+  </div>
+
+  </section>
+
+  <section class="pane" id="pane-dict" data-pane="dict" hidden>
+  <div class="pane-head"><h2>Dictionary</h2><p>Search any word, filter by level, and save words to study later.</p></div>
   <div class="controls">
     <div class="search-row">
       <input type="text" id="search" placeholder="Search any word… (e.g. mitigate, crucial)" oninput="apply()" onkeydown="if(event.key==='Enter')liveLookup()" />
@@ -336,22 +392,11 @@
   <div id="list"></div>
   <button class="more hidden" id="moreBtn" onclick="showMore()">Show more words</button>
 
-  <div class="section-title">Progress</div>
-  <div class="dashboard" id="dashboard"></div>
-  <div class="exp-row">
-    <button class="exp-btn" onclick="exportProgress()">⬇ Export progress</button>
-    <label class="exp-btn" style="cursor:pointer;">⬆ Import progress<input type="file" accept=".json" style="display:none" onchange="importProgress(event)"></label>
-  </div>
+  </section>
 
-  <div class="section-title" style="margin-top:2rem;">Grammar course</div>
-  <p class="count" id="grSummary"></p>
-  <div class="vt-mode-row"><label>Explanations / Penjelasan:</label><span class="seg" id="grLangSeg"><button data-l="en" onclick="grSetLang('en')">English</button><button data-l="id" onclick="grSetLang('id')">Indonesia</button><button data-l="both" onclick="grSetLang('both')">Keduanya</button></span></div>
-  <div class="search-row" style="margin-bottom:10px;"><input type="text" id="grFind" placeholder="Find a grammar topic… (e.g. passive, since, articles)" oninput="grSearch()" /></div>
-  <div id="grContinue" style="margin-bottom:10px;"></div>
-  <div class="tp-grid" id="grGrid"></div>
-  <div id="grArea"></div>
-
-  <div class="section-title" style="margin-top:2rem;">IELTS topic packs</div>
+  <section class="pane" id="pane-vocab" data-pane="vocab" hidden>
+  <div class="pane-head"><h2>Vocabulary</h2><p>Learn IELTS topic words, then test yourself with flashcards and quizzes.</p></div>
+  <div class="section-title">IELTS topic packs</div>
   <div class="tp-grid" id="tpGrid"></div>
   <div id="tpArea"></div>
 
@@ -375,6 +420,30 @@
   </div>
   <div id="studyArea"></div>
 
+  </section>
+
+  <section class="pane" id="pane-grammar" data-pane="grammar" hidden>
+  <div class="pane-head"><h2>Grammar</h2><p>145 short units with practice questions — explanations in English and Bahasa Indonesia.</p></div>
+  <p class="count" id="grSummary"></p>
+  <div class="vt-mode-row"><label>Explanations / Penjelasan:</label><span class="seg" id="grLangSeg"><button data-l="en" onclick="grSetLang('en')">English</button><button data-l="id" onclick="grSetLang('id')">Indonesia</button><button data-l="both" onclick="grSetLang('both')">Keduanya</button></span></div>
+  <div class="search-row" style="margin-bottom:10px;"><input type="text" id="grFind" placeholder="Find a grammar topic… (e.g. passive, since, articles)" oninput="grSearch()" /></div>
+  <div id="grContinue" style="margin-bottom:10px;"></div>
+  <div class="tp-grid" id="grGrid"></div>
+  <div id="grArea"></div>
+
+  </section>
+
+  <section class="pane" id="pane-skills" data-pane="skills" hidden>
+  <div class="pane-head"><h2>Listening &amp; Reading</h2><p>Spot paraphrases like in the real test, and practise spelling what you hear.</p></div>
+  <div class="section-title">Paraphrase trainer</div>
+  <div class="wp-tabs">
+    <button class="wp-tab on" id="ppSentTab" onclick="ppSwitch('sent')">Sentences</button>
+    <button class="wp-tab" id="ppListenTab" onclick="ppSwitch('listen')">Listening</button>
+    <button class="wp-tab" id="ppSwapTab" onclick="ppSwitch('swap')">Word swaps</button>
+  </div>
+  <div class="vt-mode-row"><label>Explanations / Penjelasan:</label><span class="seg" id="ppLangSeg"><button data-l="en" onclick="grSetLang('en')">English</button><button data-l="id" onclick="grSetLang('id')">Indonesia</button><button data-l="both" onclick="grSetLang('both')">Keduanya</button></span></div>
+  <div class="wp-box" id="ppBox"></div>
+
   <div class="section-title">Listening — spelling dictation</div>
   <div class="study-bar">
     <select id="dtDeck">
@@ -391,15 +460,10 @@
     <p class="wp-hint" style="margin:0;">Listen and type the word you hear. IELTS Listening marks misspelt answers wrong, so every letter counts. British and American spellings are both accepted.</p>
   </div>
 
-  <div class="section-title">Paraphrase trainer</div>
-  <div class="wp-tabs">
-    <button class="wp-tab on" id="ppSentTab" onclick="ppSwitch('sent')">Sentences</button>
-    <button class="wp-tab" id="ppListenTab" onclick="ppSwitch('listen')">Listening</button>
-    <button class="wp-tab" id="ppSwapTab" onclick="ppSwitch('swap')">Word swaps</button>
-  </div>
-  <div class="vt-mode-row"><label>Explanations / Penjelasan:</label><span class="seg" id="ppLangSeg"><button data-l="en" onclick="grSetLang('en')">English</button><button data-l="id" onclick="grSetLang('id')">Indonesia</button><button data-l="both" onclick="grSetLang('both')">Keduanya</button></span></div>
-  <div class="wp-box" id="ppBox"></div>
+  </section>
 
+  <section class="pane" id="pane-writing" data-pane="writing" hidden>
+  <div class="pane-head"><h2>Writing</h2><p>Build better sentences, then check the vocabulary in your own essay.</p></div>
   <div class="section-title">Writing practice</div>
   <div class="wp-tabs">
     <button class="wp-tab on" id="wpClozeTab" onclick="wpSwitch('cloze')">Fill in the blank</button>
@@ -421,6 +485,8 @@
   <div class="note" id="ecLive">0 words</div>
   <button class="go" onclick="ecCheck()">Check my vocabulary</button>
   <div id="ecOut"></div>
+  </section>
+
 </div>
 
 <script>
@@ -3870,8 +3936,8 @@ function grPartOf(n){return GR_PARTS.find(p=>n>=p.from&&n<=p.to);}
 function grGet(n){return GRAMMAR.find(u=>u.n===n);}
 function grScroll(){
   const el=document.getElementById("grArea");
-  const bar=document.querySelector(".controls");
-  window.scrollTo({top:el.getBoundingClientRect().top+window.scrollY-(bar?bar.offsetHeight+16:0),behavior:"smooth"});
+  const nav=document.getElementById("appnav"),top=getComputedStyle(nav).position==="fixed"?0:nav.offsetHeight;
+  window.scrollTo({top:el.getBoundingClientRect().top+window.scrollY-top-12,behavior:"smooth"});
 }
 function grScoreTag(n,prog){
   const s=prog[n];
@@ -3953,6 +4019,7 @@ function grSetLang(l){
   grLangUI();
   if(grUnit)grOpenUnit(grUnit,true);
   ppRelang();
+  if(curPane==="home")renderHome();
 }
 function grOpenUnit(n,keep){
   const u=grGet(n);if(!u)return;
@@ -4199,6 +4266,7 @@ function tpStudy(id,mode){
   document.getElementById("studyArea").scrollIntoView({behavior:"smooth",block:"center"});
 }
 function tpDictate(id){
+  go("skills");
   document.getElementById("dtDeck").value="topic:"+id;dtStart();
   document.getElementById("dtBox").scrollIntoView({behavior:"smooth",block:"center"});
 }
@@ -4524,6 +4592,7 @@ function enrichModal(x,data){
 
 function quickSearch(word){
   closeModal();
+  go("dict");
   const s=document.getElementById("search");s.value=word;apply();
   window.scrollTo({top:0,behavior:"smooth"});
 }
@@ -5385,6 +5454,50 @@ function ppFinish(){
 }
 function ppRelang(){if(ppQ.length)ppRender(true);}
 
+// ===================== SECTIONS =====================
+// the app is split into panes; the address (#grammar etc.) keeps the back button and links working
+const PANES=["home","dict","vocab","grammar","skills","writing"];
+let curPane=null;
+const HOME_CARDS=[
+  ["dict","🔎","Dictionary","Search any word and save it to study later.","Cari kata apa saja dan simpan untuk dipelajari nanti."],
+  ["vocab","🗂️","Vocabulary","IELTS topic words, flashcards and quizzes.","Kosakata topik IELTS, flashcard, dan kuis."],
+  ["grammar","📘","Grammar","145 short units with practice questions.","145 unit singkat dengan soal latihan."],
+  ["skills","🎧","Listening & Reading","Paraphrase trainer and spelling dictation.","Latihan parafrase dan dikte ejaan."],
+  ["writing","✍️","Writing","Sentence practice and an essay vocabulary checker.","Latihan kalimat dan pemeriksa kosakata esai."],
+];
+function renderHome(){
+  const db=srsLoad(),td=today(),due=Object.values(db).filter(x=>x.due<=td).length;
+  const gp=grLoad(),done=GRAMMAR.filter(u=>gp[u.n]>=80).length;
+  const stat={dict:BANK.length.toLocaleString()+" words",
+    vocab:TOPICS.length+" topic packs"+(due?` · ${due} words due today`:""),
+    grammar:done?`${done} / ${GRAMMAR.length} units done`:`${GRAMMAR.length} units`,
+    skills:PP_SENT.length+" paraphrase sets · dictation",
+    writing:"4 exercises · essay checker"};
+  document.getElementById("homeMenu").innerHTML=HOME_CARDS.map(([k,ic,t,en,id])=>
+    `<button class="home-card" onclick="go('${k}')"><span class="hc-top"><span class="hc-icon">${ic}</span>
+      <span class="hc-title">${esc(t)}</span><span class="hc-go">→</span></span>
+      <span class="hc-desc">${grX(en,id,true)}</span><span class="hc-stat">${stat[k]}</span></button>`).join("");
+}
+function showPane(p){
+  if(!PANES.includes(p))p="home";
+  const changed=p!==curPane;curPane=p;
+  document.querySelectorAll(".pane").forEach(el=>el.hidden=el.dataset.pane!==p);
+  document.querySelectorAll("#appnav button").forEach(b=>b.classList.toggle("on",b.dataset.go===p));
+  if(p==="home")renderHome();
+  if(changed)window.scrollTo(0,0);
+}
+function go(p){
+  if(location.hash.slice(1)!==p){try{history.pushState(null,"","#"+p);}catch(e){}}
+  showPane(p);
+}
+window.addEventListener("popstate",()=>showPane(location.hash.slice(1)));
+window.addEventListener("hashchange",()=>showPane(location.hash.slice(1)));
+function navSize(){
+  const n=document.getElementById("appnav");
+  document.documentElement.style.setProperty("--navh",getComputedStyle(n).position==="fixed"?"0px":n.offsetHeight+"px");
+}
+window.addEventListener("resize",navSize);
+
 // ===================== VERB FORM TRAINER =====================
 // Question bank covering: base form, 3rd-person -s, past -ed, present continuous,
 // passive, gerund, future, present perfect.
@@ -5753,6 +5866,7 @@ function toggleTheme(){
 })();
 
 tpOptions();wordOfDay();render();renderDashboard();wpInit();ppStart();grRenderParts();grLangUI();
+navSize();showPane(location.hash.slice(1));
 </script>
 <div class="overlay hidden" id="overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal" id="modal"></div>
