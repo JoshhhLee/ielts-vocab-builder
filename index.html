@@ -3927,7 +3927,8 @@ const GR_TXT={
       ok:"✓ Benar.",no:"✗ Belum tepat.",done:"✓ Unit selesai",keep:"Terus berlatih",correct:"benar",again:"Coba lagi",next:"Berikutnya",
       need:"Baca lagi aturannya, lalu coba sekali lagi. Kamu perlu 80% untuk menyelesaikan unit ini.",
       note:n=>`Mengikuti Unit ${n} dari <i>English Grammar in Use</i> (edisi ke-5, Raymond Murphy). Penjelasan dan latihan di sini adalah karya asli.`}};
-let grLang="en";try{grLang=localStorage.getItem("ielts_gr_lang")||"en";}catch(e){}
+// new visitors see English with Indonesian underneath; the switch remembers their choice
+let grLang="both";try{grLang=localStorage.getItem("ielts_gr_lang")||"both";}catch(e){}
 let grPick=[];
 function grL(k){
   if(grLang==="id")return GR_TXT.id[k];
