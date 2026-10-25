@@ -270,6 +270,31 @@
   .pp-from{color:var(--muted);} .pp-to{color:var(--accent);font-weight:600;}
   .pp-listen{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0 4px;}
   .speak:disabled{opacity:.45;cursor:default;border-color:var(--line);color:var(--ink);}
+  .tp-card:disabled{opacity:.5;cursor:default;border-color:var(--line);}
+  .gr-row{display:flex;gap:10px;align-items:center;width:100%;text-align:left;background:var(--surface);color:var(--ink);
+    border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:6px;cursor:pointer;font-family:inherit;font-size:.98rem;}
+  .gr-row:hover{border-color:var(--accent);}
+  .gr-num{font-family:system-ui,sans-serif;font-weight:700;font-size:.8rem;color:var(--muted);min-width:26px;}
+  .gr-t{flex:1;font-weight:600;}
+  .gr-f{display:block;font-weight:400;font-style:italic;color:var(--muted);font-size:.9rem;}
+  .gr-score{font-family:system-ui,sans-serif;font-size:.78rem;color:var(--muted);white-space:nowrap;}
+  .gr-score.done{color:var(--ok);font-weight:700;}
+  .gr-unit{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:1.2rem 1.3rem;}
+  .gr-head{margin:10px 0 4px;}
+  .gr-kicker{font-family:system-ui,sans-serif;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);}
+  .gr-title{font-size:1.5rem;font-weight:700;line-height:1.25;}
+  .gr-rules{margin:0;padding-left:1.2rem;} .gr-rules li{margin-bottom:8px;}
+  .gr-err{display:flex;flex-direction:column;gap:1px;margin-bottom:9px;font-size:.96rem;}
+  .gr-bad{color:var(--C2);} .gr-good{color:var(--ok);}
+  .gr-ielts{background:var(--goldbg);border-left:3px solid var(--gold);border-radius:0 10px 10px 0;padding:10px 14px;margin-top:18px;font-size:.96rem;}
+  .gr-q{padding:12px 0;border-top:1px solid var(--line);}
+  .gr-qs{margin-bottom:8px;line-height:1.8;}
+  .gr-opts{display:flex;flex-wrap:wrap;gap:6px;}
+  .gr-opts .vt-opt{padding:8px 14px;font-size:.95rem;}
+  .gr-why{font-size:.86rem;font-family:system-ui,sans-serif;margin-top:6px;color:var(--muted);}
+  .vt-blank.revealed{border-bottom-style:solid;border-color:var(--ok);color:var(--ok);}
+  .gr-ex{background:var(--bg);border-radius:8px;padding:7px 12px;margin-bottom:6px;font-size:.97rem;}
+  .gr-ex b{color:var(--accent);}
 </style>
 </head>
 <body>
@@ -313,6 +338,13 @@
     <button class="exp-btn" onclick="exportProgress()">⬇ Export progress</button>
     <label class="exp-btn" style="cursor:pointer;">⬆ Import progress<input type="file" accept=".json" style="display:none" onchange="importProgress(event)"></label>
   </div>
+
+  <div class="section-title" style="margin-top:2rem;">Grammar course</div>
+  <p class="count" id="grSummary"></p>
+  <div class="search-row" style="margin-bottom:10px;"><input type="text" id="grFind" placeholder="Find a grammar topic… (e.g. passive, since, articles)" oninput="grSearch()" /></div>
+  <div id="grContinue" style="margin-bottom:10px;"></div>
+  <div class="tp-grid" id="grGrid"></div>
+  <div id="grArea"></div>
 
   <div class="section-title" style="margin-top:2rem;">IELTS topic packs</div>
   <div class="tp-grid" id="tpGrid"></div>
@@ -508,6 +540,417 @@ async function liveLookup(){
     box.innerHTML='<div class="card live"><p class="empty">Couldn’t find “'+esc(word)+'”. '+
       'Check the spelling, or note: live lookup needs internet and works best when you open this file in a web browser (Chrome/Safari).</p></div>';
   }finally{btn.disabled=false;btn.textContent="Explain";}
+}
+
+// ===================== GRAMMAR COURSE =====================
+// 145 units in the same order as English Grammar in Use (5th ed., Raymond Murphy) so students with the
+// book can follow along. All explanations, examples and exercises here are original.
+// Unit: {n, t:title, f:form, r:[rules (HTML)], ex:[examples (HTML)], err:[[wrong, right]], ielts:tip (HTML),
+//        q:[[sentence with ___, [correct option, wrong options…], why]]}  —  "a … b" fills two blanks.
+const GR_PARTS=[
+  {id:"pres",name:"Present and past",from:1,to:6},
+  {id:"perf",name:"Present perfect and past",from:7,to:18},
+  {id:"fut",name:"Future",from:19,to:25},
+  {id:"modal",name:"Modals",from:26,to:37},
+  {id:"if",name:"if and wish",from:38,to:41},
+  {id:"pass",name:"Passive",from:42,to:46},
+  {id:"rep",name:"Reported speech",from:47,to:48},
+  {id:"quest",name:"Questions and auxiliary verbs",from:49,to:52},
+  {id:"ing",name:"-ing and to …",from:53,to:68},
+  {id:"art",name:"Articles and nouns",from:69,to:81},
+  {id:"pron",name:"Pronouns and determiners",from:82,to:91},
+  {id:"rel",name:"Relative clauses",from:92,to:97},
+  {id:"adj",name:"Adjectives and adverbs",from:98,to:112},
+  {id:"conj",name:"Conjunctions",from:113,to:120},
+  {id:"prep",name:"Prepositions",from:121,to:136},
+  {id:"phr",name:"Phrasal verbs",from:137,to:145},
+];
+const GR_KEY="ielts_grammar",GR_LAST="ielts_grammar_last";
+const GRAMMAR=[
+{n:1,t:"Present continuous",f:"I am doing",
+ r:["Form: <b>am / is / are + verb-ing</b> — I'm working, she's reading, they aren't listening.",
+    "Use it for something happening <b>now</b>, at the moment of speaking. It has started and is not finished.",
+    "Use it for something in progress <b>around now</b>, even if it isn't happening this second: <i>I'm reading a great novel this month.</i>",
+    "Use it with time periods that include now: <b>today, this week, this term, this year</b>.",
+    "Use it for <b>changes that are happening</b>: getting, becoming, rising, falling, improving, increasing."],
+ ex:["Can you call back later? I'm <b>cooking</b> dinner.","My cousin <b>is studying</b> medicine at university this year.",
+     "Why <b>are</b> you <b>wearing</b> a jacket? It's so hot!","Food prices <b>are rising</b> every month."],
+ err:[["Be quiet! The baby sleeps.","Be quiet! The baby is sleeping."],["I am study for my exam now.","I am studying for my exam now."],
+      ["She working in a bank this year.","She is working in a bank this year."]],
+ ielts:"Task 1 and Speaking: describe trends that are still happening — <i>The number of students learning online <b>is growing</b>.</i> In Speaking Part 1: <i>I'm currently studying at …</i>",
+ q:[["Listen! Someone ___ at the door.",["is knocking","knocks"],"‘Listen!’ shows it is happening now → present continuous."],
+    ["We can't play football — it ___ heavily.",["is raining","rains","raining"],"It's happening now, and you need is + -ing (raining alone is not enough)."],
+    ["My English ___ better because I practise every day.",["is getting","gets"],"A change that is in progress → present continuous."],
+    ["Ali ___ his homework at the moment.",["is doing","does","do"],"‘At the moment’ → present continuous."],
+    ["This week I ___ at my uncle's shop.",["am helping","help","helping"],"‘This week’ is a period around now → present continuous."]]},
+{n:2,t:"Present simple",f:"I do",
+ r:["Form: <b>I / you / we / they work</b> — <b>he / she / it works</b>. Don't forget the <b>-s</b> for he/she/it (goes, watches, studies, has).",
+    "Use it for <b>facts</b> and things that are always or generally true: <i>Water freezes at 0°C.</i>",
+    "Use it for <b>habits and routines</b> and to say how often: always, usually, often, sometimes, never, every day.",
+    "Questions and negatives use <b>do / does + base verb</b>: <i>Does she speak Arabic? He doesn't eat meat.</i> (not <i>doesn't eats</i>)",
+    "Some verbs do an action just by saying them: <b>I promise, I agree, I suggest, I apologise, I refuse</b> — use the simple, not -ing."],
+ ex:["The school bus <b>leaves</b> at 6.45 every morning.","My father <b>works</b> in a hospital. He's a nurse.",
+     "How often <b>do</b> you <b>check</b> your phone?","Plants <b>need</b> sunlight to grow."],
+ err:[["She go to school by motorbike.","She goes to school by motorbike."],["Does he likes rice?","Does he like rice?"],
+      ["What means this word?","What does this word mean?"]],
+ ielts:"Task 2: general truths and opinions — <i>Many young people <b>spend</b> too much time online.</i> Speaking Part 1 (habits): <i>I usually <b>study</b> in the evening.</i>",
+ q:[["My sister ___ English at a high school.",["teaches","teach","is teach"],"She → add -es: teach → teaches."],
+    ["___ your brother live near here?",["Does","Do","Is"],"A question with he/she/it → Does + base verb."],
+    ["The sun ___ in the east.",["rises","is rising"],"A fact that is always true → present simple."],
+    ["I ___ coffee — it makes me nervous.",["don't drink","doesn't drink","am not drink"],"I → don't + base verb."],
+    ["I ___ to finish the report by Friday.",["promise","am promising"],"Saying ‘I promise’ is the action itself → present simple."]]},
+{n:3,t:"Present continuous and present simple 1",f:"I am doing and I do",
+ r:["<b>Continuous</b> (I am doing) = happening now or around now, not finished. <b>Simple</b> (I do) = things in general, or things that happen again and again.",
+    "Continuous for <b>temporary</b> situations: <i>I'm staying with my aunt until my exams finish.</i> Simple for <b>permanent</b> ones: <i>My aunt lives in the capital.</i>",
+    "<b>I always do</b> = every time. <b>I'm always doing</b> = too often, usually annoying: <i>He's always borrowing my pen!</i>"],
+ ex:["Rina usually <b>walks</b> to school, but today she<b>'s taking</b> the bus because it's raining.",
+     "‘What <b>do</b> you <b>do</b>?’ ‘I'm a teacher.’ ‘What <b>are</b> you <b>doing</b>?’ ‘I'm marking homework.’",
+     "I<b>'m sleeping</b> on my friend's sofa until I find a room.","You<b>'re always forgetting</b> your keys!"],
+ err:[["Look! The bus comes.","Look! The bus is coming."],["I am going to school every day.","I go to school every day."],
+      ["How often are you visiting your grandparents?","How often do you visit your grandparents?"]],
+ ielts:"Speaking Part 1 answers often need both: <i>I <b>live</b> in a small town, but at the moment I<b>'m studying</b> in the city.</i> Using both correctly shows grammatical range.",
+ q:[["Usually I ___ to school, but this week I'm cycling.",["walk","am walking"],"‘Usually’ = a routine → present simple."],
+    ["Shh! The teacher ___ .",["is talking","talks"],"It is happening now → present continuous."],
+    ["I ___ with my cousin until my new room is ready.",["am staying","stay"],"A temporary situation → present continuous."],
+    ["What ___ you usually ___ on Sundays?",["do … do","are … doing"],"‘Usually’ → present simple question: What do you do?"],
+    ["Excuse me, ___ you ___ English?",["do … speak","are … speaking"],"Asking about an ability in general → present simple."]]},
+{n:4,t:"Present continuous and present simple 2",f:"I am doing and I do",
+ r:["Some verbs describe <b>states</b>, not actions, and are not normally used in the continuous: <b>know, like, love, hate, want, need, prefer, believe, understand, remember, mean, belong, seem, contain</b>.",
+    "<b>think</b> = have an opinion → simple: <i>I think it's a good idea.</i> <b>think</b> = consider → continuous is fine: <i>I'm thinking about my future.</i>",
+    "<b>see, hear, smell, taste</b> usually take the simple: <i>This soup tastes delicious.</i> <b>look</b> and <b>feel</b> (how someone seems now) can be either.",
+    "<b>am / is / are being</b> + adjective = behaving that way now: <i>You're being very rude today.</i> Not for things you can't control: <i>She's tired</i> (not <i>being tired</i>)."],
+ ex:["I <b>need</b> a new charger. Mine is broken.","<b>Do</b> you <b>remember</b> my name?",
+     "We<b>'re thinking</b> of starting a study group.","This bag <b>belongs</b> to Maya."],
+ err:[["I am knowing the answer.","I know the answer."],["She is wanting a new phone.","She wants a new phone."],
+      ["I'm thinking that online learning is useful.","I think that online learning is useful."]],
+ ielts:"Task 2 opinions use <b>think / believe</b> in the simple: <i>I believe that …</i>, <i>Many people think that …</i> — never <i>I am believing</i>.",
+ q:[["I ___ what you mean.",["understand","am understanding"],"understand is a state verb → present simple."],
+    ["What ___ of the new teacher?",["do you think","are you thinking"],"think = your opinion → present simple."],
+    ["Be quiet, please. I ___ about the answer.",["am thinking","think"],"think = using your mind right now → continuous is fine."],
+    ["This milk ___ strange. Don't drink it.",["smells","is smelling"],"smell describing a quality → present simple."],
+    ["This box ___ old photos.",["contains","is containing"],"contain is a state verb → present simple."]]},
+{n:5,t:"Past simple",f:"I did",
+ r:["Use the past simple for <b>finished actions and situations</b> in the past: <i>I visited my grandmother last weekend.</i>",
+    "Regular verbs add <b>-ed</b> (played, studied, stopped). Many common verbs are irregular: go → went, buy → bought, write → wrote, put → put.",
+    "Questions and negatives: <b>did / didn't + base verb</b>: <i>Did you see it? I didn't go.</i> (not <i>didn't went</i>)",
+    "The past of <b>be</b> is <b>was / were</b>: <i>I was tired. They were late. Were you at home?</i>"],
+ ex:["We <b>moved</b> to this town in 2015.","She <b>didn't eat</b> breakfast because she <b>woke</b> up late.",
+     "What <b>did</b> you <b>do</b> last night?","The test <b>was</b> difficult, but I <b>passed</b> it."],
+ err:[["I didn't went to school yesterday.","I didn't go to school yesterday."],["Yesterday I go to the market.","Yesterday I went to the market."],
+      ["Did you finished your homework?","Did you finish your homework?"]],
+ ielts:"Task 1: charts about past years need the past simple — <i>In 2010, sales <b>reached</b> a peak and then <b>fell</b>.</i> Speaking Part 2 stories: <i>Last year I <b>visited</b> …</i>",
+ q:[["Last year my family ___ a new house.",["bought","buyed","buys"],"buy is irregular: buy → bought."],
+    ["___ you enjoy the concert?",["Did","Were","Do"],"Past simple question → Did + base verb."],
+    ["I ___ the film because I was too tired.",["didn't watch","didn't watched","not watched"],"After didn't, use the base verb."],
+    ["The students ___ very excited about the trip.",["were","was","did"],"Students is plural → were."],
+    ["In 2015, the number of visitors ___ to 2 million.",["rose","rises","has risen"],"A finished year in the past → past simple. rise → rose."]]},
+{n:6,t:"Past continuous",f:"I was doing",
+ r:["Form: <b>was / were + verb-ing</b>: <i>I was sleeping, they were playing.</i>",
+    "Use it for something <b>in progress</b> at a particular time in the past: <i>At 9 p.m. last night I was studying.</i>",
+    "Use it with the past simple: a longer action (continuous) is <b>interrupted</b> by a shorter one (simple): <i>I was walking home when it started to rain.</i>",
+    "When one action happens <b>after</b> another, use the past simple for both: <i>When the bell rang, we left the room.</i>",
+    "State verbs (know, want, like …) are not normally continuous: <i>I knew him well</i> (not <i>was knowing</i>)."],
+ ex:["What <b>were</b> you <b>doing</b> when the lights went out?","While my mother <b>was cooking</b>, I <b>was cleaning</b> the house.",
+     "My phone rang while I <b>was taking</b> the exam.","She <b>wasn't listening</b>, so she missed the instructions."],
+ err:[["I was watch TV when you called.","I was watching TV when you called."],
+      ["While I walked to school, I was seeing an accident.","While I was walking to school, I saw an accident."],
+      ["They was playing football.","They were playing football."]],
+ ielts:"Speaking Part 2 (telling a story): set the scene with the past continuous — <i>It <b>was raining</b> and everyone <b>was rushing</b> home when …</i>",
+ q:[["At eight o'clock last night I ___ my homework, so I didn't answer the phone.",["was doing","did"],"In progress at 8 o'clock → past continuous."],
+    ["I ___ my leg while I was playing football.",["hurt","was hurting"],"The short action that interrupts → past simple (hurt → hurt)."],
+    ["When the teacher came in, the students ___ loudly.",["were talking","talked"],"They were already talking when she came in → past continuous."],
+    ["We ___ TV when we heard a strange noise.",["were watching","was watching","watched"],"We → were; in progress when the noise happened."],
+    ["When the rain stopped, we ___ outside to play.",["went","were going"],"One action after another → past simple."]]},
+{n:7,t:"Present perfect 1",f:"I have done",
+ r:["Form: <b>have / has + past participle</b>: <i>I've finished, she has gone, they haven't decided.</i>",
+    "Use it for a past action with a <b>result now</b>: <i>I've lost my wallet</i> (= I don't have it now).",
+    "Use it to give <b>new information</b> or news: <i>The government has announced new rules.</i>",
+    "<b>just</b> = a short time ago · <b>already</b> = sooner than expected · <b>yet</b> = until now (in questions and negatives, at the end).",
+    "<b>has gone to</b> = is there now (or on the way) · <b>has been to</b> = went there and came back."],
+ ex:["I can't open the door. I<b>'ve forgotten</b> the password.","<b>Have</b> you <b>finished</b> your project yet?",
+     "The bus <b>has just left</b> — we'll have to wait.","Siti isn't here. She<b>'s gone</b> to the library."],
+ err:[["I have finish my homework.","I have finished my homework."],["She has went home.","She has gone home."],
+      ["Have you ate lunch?","Have you eaten lunch?"]],
+ ielts:"Task 2 and Speaking: describe recent changes — <i>Technology <b>has changed</b> the way we learn.</i> It links the past to now, which many essay questions ask about.",
+ q:[["I ___ my keys. Can you help me look for them?",["have lost","has lost","am losing"],"I → have + past participle; the result is now (no keys)."],
+    ["‘Is Budi here?’ ‘No, he ___ home.’",["has gone","has been"],"He is not here now → gone. (been would mean he went and came back.)"],
+    ["Have you finished the exercise ___?",["yet","already","just"],"yet goes at the end of questions."],
+    ["‘Do you want lunch?’ ‘No thanks, I've ___ eaten.’",["just","yet"],"just = a short time ago."],
+    ["Scientists ___ a new type of battery.",["have developed","have develop","has developed"],"Scientists is plural → have + past participle."]]},
+{n:8,t:"Present perfect 2",f:"I have done",
+ r:["Use it for a <b>period of time that continues until now</b>, like your whole life: <i>Have you ever been to Bali? I've never eaten sushi.</i>",
+    "<b>ever</b> (questions), <b>never</b>, <b>before</b>: <i>It's the best book I've ever read.</i> <b>been to</b> = visited.",
+    "Use it with <b>recently, so far, in the last few days, since …</b>: <i>I've met lots of new people recently.</i>",
+    "Use it with time that is not finished: <b>today, this week, this year</b>: <i>I've drunk three glasses of water today.</i>",
+    "<b>It's the first / second time</b> + present perfect: <i>It's the first time I've flown.</i>"],
+ ex:["I<b>'ve visited</b> three different countries in my life.","<b>Have</b> you ever <b>seen</b> snow?",
+     "We <b>haven't had</b> any tests so far this term.","This is the second time I<b>'ve failed</b> my driving test."],
+ err:[["It's the first time I visit this city.","It's the first time I've visited this city."],["I never have been to Japan.","I have never been to Japan."],
+      ["This year I have went to three weddings.","This year I have been to three weddings."]],
+ ielts:"Speaking loves experience questions: <i>Have you ever …?</i> → <i>Yes, I<b>'ve done</b> it twice.</i> Then switch to the past simple for details: <i>The first time <b>was</b> in 2022.</i>",
+ q:[["___ you ever ___ a horse?",["Have … ridden","Have … rode","Has … ridden"],"You → have + past participle (ride → ridden)."],
+    ["It's the first time I ___ this kind of food.",["have tried","try","am trying"],"It's the first time + present perfect."],
+    ["She's very busy. She ___ lots of emails this morning.",["has written","writes","is write"],"It is still morning (time not finished) → present perfect."],
+    ["That's the most beautiful beach I've ___ seen.",["ever","never","yet"],"the most … I've ever …"],
+    ["We ___ any problems so far.",["haven't had","didn't have","don't have"],"‘So far’ = until now → present perfect."]]},
+{n:9,t:"Present perfect continuous",f:"I have been doing",
+ r:["Form: <b>have / has been + verb-ing</b>: <i>I've been waiting, it has been raining.</i>",
+    "Use it for an activity that has <b>recently stopped</b>, often when you can see the result: <i>Your eyes are red. Have you been crying?</i>",
+    "Use it for an activity that <b>started in the past and is still going on</b>, especially with <b>how long, for, since</b>: <i>I've been learning English for six years.</i>",
+    "It also works for actions repeated up to now: <i>She's been going to the gym since January.</i>"],
+ ex:["I'm so tired. I<b>'ve been studying</b> all day.","How long <b>have</b> you <b>been waiting</b>?",
+     "The ground is wet. It<b>'s been raining</b>.","He<b>'s been playing</b> the guitar since he was ten."],
+ err:[["I am learning English for five years.","I have been learning English for five years."],
+      ["She has been work here since 2020.","She has been working here since 2020."],["How long are you waiting?","How long have you been waiting?"]],
+ ielts:"A very common Speaking Part 1 question: <i>How long have you been studying English?</i> → <i>I<b>'ve been studying</b> it for about six years.</i>",
+ q:[["You're out of breath. ___ running?",["Have you been","Are you","Did you be"],"Recent activity with a result now → have you been + -ing."],
+    ["I ___ for the bus for 30 minutes — it's still not here!",["have been waiting","am waiting","waited"],"Started in the past and still continuing + for → present perfect continuous."],
+    ["It ___ all morning, so the roads are flooded.",["has been raining","is raining since","rains"],"An activity up to now with a visible result."],
+    ["How long ___ you ___ the guitar?",["have … been playing","are … playing","do … play"],"How long + still continuing → present perfect continuous."],
+    ["My hands are dirty because I ___ in the garden.",["have been working","am work","work"],"A recent activity that explains the result (dirty hands)."]]},
+{n:10,t:"Present perfect continuous and simple",f:"I have been doing and I have done",
+ r:["<b>Continuous</b> (have been doing) focuses on the <b>activity</b> — it may not be finished. <b>Simple</b> (have done) focuses on the <b>result</b> — the action is complete.",
+    "<b>How long</b> → usually continuous: <i>I've been reading this book for a week.</i> <b>How much / how many / how many times</b> → simple: <i>I've read 200 pages.</i>",
+    "State verbs (know, like, have for possession …) stay in the simple: <i>I've known her for years.</i>"],
+ ex:["I<b>'ve been writing</b> my essay all afternoon, but I haven't finished it.","I<b>'ve written</b> two essays this week.",
+     "Someone <b>has eaten</b> all the biscuits! The packet is empty.","We<b>'ve been cleaning</b> the classroom since lunch."],
+ err:[["I've been reading three books this month.","I've read three books this month."],["I've been knowing him since childhood.","I've known him since childhood."]],
+ ielts:"Task 1: use the simple for totals — <i>Sales <b>have increased</b> by 40%.</i> — and the continuous for ongoing processes — <i>The company <b>has been expanding</b> since 2015.</i>",
+ q:[["I ___ five emails this morning.",["have sent","have been sending"],"A number (how many) → present perfect simple."],
+    ["I ___ this book for two weeks, but I'm only halfway through.",["have been reading","have read"],"How long + not finished → present perfect continuous."],
+    ["How many pages ___?",["have you read","have you been reading"],"How many → present perfect simple."],
+    ["My bike works again — I ___ it.",["have repaired","have been repairing"],"The job is finished; we care about the result."],
+    ["We ___ each other since primary school.",["have known","have been knowing"],"know is a state verb → simple only."]]},
+{n:11,t:"How long have you (been) …?",f:"",
+ r:["For something that started in the past and <b>continues now</b>, use the present perfect, not the present: <i>I've lived here for ten years</i> (not <i>I live here for ten years</i>).",
+    "Ask <b>How long have you …?</b>: <i>How long have they been married? How long have you had that phone?</i>",
+    "With <b>live</b> and <b>work</b>, the simple and continuous are both fine. With <b>always</b>, use the simple: <i>I've always wanted to visit Egypt.</i>",
+    "Negative + <b>for / since</b> tells us the last time: <i>I haven't seen her since Monday.</i>"],
+ ex:["My grandparents <b>have been</b> married for 50 years.","How long <b>have</b> you <b>known</b> your best friend?",
+     "He<b>'s worked</b> at the same factory since 2012.","I <b>haven't eaten</b> anything since breakfast."],
+ err:[["I am here since 7 o'clock.","I have been here since 7 o'clock."],["How long are you living in this town?","How long have you lived (or been living) in this town?"],
+      ["I know him for two years.","I've known him for two years."]],
+ ielts:"Speaking Part 1: <i>How long have you lived in your hometown?</i> → <i>I<b>'ve lived</b> there all my life.</i> (not <i>I live there since …</i>)",
+ q:[["We ___ in this house since 2018.",["have lived","live","are living"],"Started in 2018 and continues now → present perfect."],
+    ["How long ___ that bag?",["have you had","do you have","are you having"],"How long + have (possession) → present perfect simple."],
+    ["I ___ my cousin since the wedding last year.",["haven't seen","don't see","am not seeing"],"Negative + since = the last time → present perfect."],
+    ["She ___ wanted to be a doctor.",["has always","is always","always is"],"always + present perfect simple: has always wanted."],
+    ["They ___ married for 25 years.",["have been","are","were being"],"Started 25 years ago and continues → have been."]]},
+{n:12,t:"for and since",f:"when …? and how long …?",
+ r:["<b>for</b> + a period of time: for two hours, for three days, for a long time.",
+    "<b>since</b> + the starting point: since 8 o'clock, since Monday, since 2019, since I was a child.",
+    "<b>When …?</b> asks about a point in the past → past simple. <b>How long …?</b> → present perfect.",
+    "<b>It's (been) + time + since</b> + past simple: <i>It's two years since I last saw him.</i>",
+    "Don't use for with <b>all</b>: <i>I've lived here all my life</i> (not <i>for all my life</i>)."],
+ ex:["I've been at this school <b>for</b> three years.","I've been at this school <b>since</b> 2023.",
+     "‘<b>When</b> did you start learning English?’ ‘When I was seven.’","It's been ages <b>since</b> we went to the beach."],
+ err:[["I have studied here since three years.","I have studied here for three years."],["She has worked here for 2020.","She has worked here since 2020."],
+      ["How long did you start this course?","When did you start this course?"]],
+ ielts:"Task 1: <i><b>Since</b> 2010, the figure has doubled.</i> / <i>Prices have risen steadily <b>for</b> a decade.</i> Getting for/since right is a quick accuracy win.",
+ q:[["I've been waiting ___ half an hour.",["for","since"],"half an hour is a period → for."],
+    ["They've lived in this city ___ 2015.",["since","for"],"2015 is the starting point → since."],
+    ["___ did you arrive?",["When","How long"],"Asking about a point in time (past simple) → When."],
+    ["It's three years ___ I last went to the cinema.",["since","for","from"],"It's + time + since …"],
+    ["I've known her ___ we were children.",["since","for","from"],"‘we were children’ is the starting point → since."]]},
+{n:13,t:"Present perfect and past 1",f:"I have done and I did",
+ r:["The present perfect tells us about the <b>situation now</b>: <i>She has broken her arm</i> (it is still broken). The past simple tells us only about the past: <i>She broke her arm</i> (maybe it's fine now).",
+    "For new or recent events you can often use either: <i>I've fixed the fan</i> / <i>I fixed the fan</i>.",
+    "For things that are <b>not recent</b> — history, people who are no longer alive — use the past simple: <i>Shakespeare wrote 37 plays.</i>",
+    "Give news with the present perfect, then continue the story in the <b>past simple</b>: <i>I've cut my finger. — How did it happen? — I was slicing onions.</i>"],
+ ex:["The lift <b>has broken</b> down, so we have to use the stairs.","The lift <b>broke</b> down last week, but it's working again now.",
+     "Who <b>invented</b> the printing press?","‘Someone <b>has left</b> a bag here!’ ‘<b>Did</b> you <b>see</b> who it was?’"],
+ err:[["Shakespeare has written Romeo and Juliet.","Shakespeare wrote Romeo and Juliet."],
+      ["I've lost my phone. I've left it on the bus yesterday.","I've lost my phone. I left it on the bus yesterday."]],
+ ielts:"Task 2 introductions: <i>The internet <b>has transformed</b> education</i> (the situation now). Historical examples: <i>In the 1990s, few schools <b>had</b> computers</i> (past simple).",
+ q:[["Who ___ the Mona Lisa?",["painted","has painted"],"History / not recent → past simple."],
+    ["‘I've lost my ruler.’ ‘Where ___ it last?’",["did you have","have you had"],"Continuing the story with details → past simple."],
+    ["It ___ raining for a while, but now it's raining again.",["stopped","has stopped"],"It is raining now, so it's not a ‘result now’ → past simple."],
+    ["My grandfather ___ in a factory for 40 years. He retired in 2010.",["worked","has worked"],"He doesn't work there now → past simple."],
+    ["‘I've cut my hand.’ ‘How ___ that?’",["did you do","have you done"],"Asking for details after the news → past simple."]]},
+{n:14,t:"Present perfect and past 2",f:"I have done and I did",
+ r:["Don't use the present perfect with a <b>finished time</b>: yesterday, last week, in 2019, two days ago, when I was a child → past simple.",
+    "Ask <b>When …?</b> and <b>What time …?</b> with the past simple: <i>When did you finish?</i>",
+    "Present perfect = a period <b>until now</b> (today, this week, since 2020, recently). Past simple = a <b>finished</b> period (yesterday, last week, from 2015 to 2020).",
+    "<i>Have you seen Ana this morning?</i> (it is still morning) / <i>Did you see Ana this morning?</i> (it is now afternoon)."],
+ ex:["I<b>'ve done</b> a lot of revision this week.","I <b>did</b> a lot of revision last week.",
+     "He <b>has lived</b> here since 2019. Before that, he <b>lived</b> in a village.","What time <b>did</b> the match <b>start</b>?"],
+ err:[["I have seen him yesterday.","I saw him yesterday."],["When have you arrived?","When did you arrive?"],
+      ["In 2020 the population has grown.","In 2020 the population grew."]],
+ ielts:"Task 1 rule of thumb: if the chart ends in the past (e.g. 1990–2010), use the past simple throughout. If it reaches the present, you can say <i>has risen since …</i>",
+ q:[["We ___ the museum last Saturday.",["visited","have visited"],"last Saturday is a finished time → past simple."],
+    ["I ___ much work this week — I've been ill.",["haven't done","don't do","am not doing"],"this week is not finished → present perfect."],
+    ["What time ___ home last night?",["did you get","have you got"],"What time + finished time → past simple."],
+    ["She ___ in Paris from 2016 to 2019.",["lived","has lived"],"A finished period (from … to …) → past simple."],
+    ["Between 1990 and 2000, car ownership ___ sharply.",["increased","has increased"],"A finished period in the past → past simple."]]},
+{n:15,t:"Past perfect",f:"I had done",
+ r:["Form: <b>had + past participle</b>: <i>I had finished, she hadn't seen.</i>",
+    "Use it to go <b>further back in the past</b> — for something that happened <b>before</b> another past event: <i>When I arrived, the class had already started.</i>",
+    "Compare: <i>When I arrived, the class started</i> (I arrived, then it started) and <i>When I arrived, the class had started</i> (it started before I arrived).",
+    "It is the past version of the present perfect: <i>I'm not hungry. I've eaten.</i> → <i>I wasn't hungry. I'd eaten.</i>"],
+ ex:["By the time we got to the station, the train <b>had left</b>.","She was nervous because she <b>had</b> never <b>spoken</b> in public before.",
+     "I realised I <b>had left</b> my wallet at home.","They <b>hadn't finished</b> the project when the deadline came."],
+ err:[["When I arrived, the film already started.","When I arrived, the film had already started."],["I had went there before.","I had been there before."]],
+ ielts:"Speaking Part 2 stories and Task 2 examples: <i>Before smartphones became common, people <b>had relied</b> on paper maps.</i> A clear timeline shows control of tenses.",
+ q:[["When we got to the cinema, the film ___ already ___.",["had … started","has … started","was … starting"],"It started before we arrived → past perfect."],
+    ["I couldn't get in because I ___ my key.",["had lost","have lost","lose"],"Losing the key happened before ‘couldn't get in’ → past perfect."],
+    ["She ___ on a plane before, so she was a little scared.",["had never been","has never been","never is"],"Before that past moment → past perfect."],
+    ["The room was empty. Everyone ___ home.",["had gone","has gone","goes"],"They left before that past moment → past perfect."],
+    ["He didn't want to see the film because he ___ it already.",["had seen","has seen","sees"],"He saw it before that past time → past perfect."]]},
+{n:16,t:"Past perfect continuous",f:"I had been doing",
+ r:["Form: <b>had been + verb-ing</b>: <i>I had been working.</i>",
+    "Use it for an activity that was <b>in progress before</b> a past moment, often with a result you could see then: <i>The road was wet. It had been raining.</i>",
+    "With how long / for / since in the past: <i>We'd been waiting for an hour when the bus finally came.</i>",
+    "Compare: <i>was doing</i> = in progress at that moment · <i>had been doing</i> = in progress before it. State verbs stay simple: <i>had known</i>."],
+ ex:["His clothes were dirty because he <b>had been playing</b> football.","I <b>had been studying</b> for three hours when the power went off.",
+     "She was exhausted. She<b>'d been working</b> since dawn.","We <b>had known</b> each other for years before we started a business."],
+ err:[["I was waiting for two hours when he finally came.","I had been waiting for two hours when he finally came."],
+      ["They had been knowing each other for years.","They had known each other for years."]],
+ ielts:"Useful in Speaking Part 2: <i>I <b>had been preparing</b> for months, so I felt ready.</i>",
+ q:[["The streets were wet because it ___.",["had been raining","has been raining","is raining"],"In progress before that past moment → past perfect continuous."],
+    ["We ___ for an hour when the taxi finally arrived.",["had been waiting","have been waiting","are waiting"],"How long before a past event → had been + -ing."],
+    ["Her eyes were red. She ___.",["had been crying","has been crying","cries"],"Activity before that past moment, with a visible result."],
+    ["When I met him, he ___ in the city for only a month.",["had been living","has been living","lives"],"Duration up to a past moment → past perfect continuous."],
+    ["We were good friends. We ___ each other since school.",["had known","had been knowing"],"know is a state verb → had known."]]},
+{n:17,t:"have and have got",f:"",
+ r:["For possession, family, illnesses and appointments, <b>have</b> and <b>have got</b> mean the same: <i>I have a cold = I've got a cold.</i>",
+    "With these meanings, don't use the continuous: <i>We have a big house</i> (not <i>We're having</i>).",
+    "Questions and negatives: <i>Do you have …? / Have you got …?</i> — <i>I don't have / I haven't got.</i> Past: <b>had</b>, <b>did you have</b>, <b>didn't have</b>.",
+    "For actions and experiences — <b>have breakfast, a shower, a break, a party, fun, a problem, a good time</b> — use <b>have</b>, not have got. The continuous is fine here: <i>We're having lunch.</i>"],
+ ex:["<b>Have</b> you <b>got</b> a pen I can borrow?","My school <b>has</b> a big library.",
+     "We <b>had</b> a great time at the festival.","I don't usually <b>have</b> breakfast before school."],
+ err:[["I'm having two sisters.","I have two sisters. (or I've got two sisters.)"],["I've got a shower every morning.","I have a shower every morning."],
+      ["Had you a good weekend?","Did you have a good weekend?"]],
+ ielts:"<i>Have got</i> is fine in Speaking, but in Writing use <b>have</b>: <i>Many cities <b>have</b> serious traffic problems.</i>",
+ q:[["She ___ long hair when she was a child.",["had","had got","has got"],"Past possession → had (usually without got)."],
+    ["___ any brothers or sisters?",["Do you have","Are you having","Have you"],"Possession question → Do you have …? (or Have you got …?)"],
+    ["We ___ lunch at the moment. Can I call you back?",["are having","have got","have"],"have lunch = an action → continuous is fine."],
+    ["I ___ a headache, so I'm going to lie down.",["'ve got","am having got","having"],"An illness → have / have got."],
+    ["___ a good holiday?",["Did you have","Had you","Have you got"],"Past experience question → Did you have …?"]]},
+{n:18,t:"used to",f:"I used to do",
+ r:["<b>used to + base verb</b> = something you did regularly in the past but <b>don't do now</b>: <i>I used to play badminton every week.</i>",
+    "It also describes past states that are no longer true: <i>This café used to be a bookshop.</i>",
+    "There is no present form. For now, use the present simple: <i>I used to live in a village, but now I live in the city.</i>",
+    "Questions and negatives: <b>Did you use to …? / I didn't use to …</b> (no -d after did).",
+    "Don't confuse it with <b>be used to + -ing</b> (= be familiar with something) — see Unit 61."],
+ ex:["My grandfather <b>used to walk</b> five kilometres to school.","There <b>used to be</b> a cinema in our town, but it closed.",
+     "<b>Did</b> you <b>use to watch</b> cartoons?","I <b>didn't use to like</b> vegetables, but now I love them."],
+ err:[["I use to play football when I was young.","I used to play football when I was young."],["Did you used to live here?","Did you use to live here?"],
+      ["I used to going to the beach.","I used to go to the beach."]],
+ ielts:"Task 2 and Speaking (comparing past and present): <i>People <b>used to write</b> letters; now they send messages.</i> A natural way to show change over time.",
+ q:[["When I was little, I ___ afraid of the dark.",["used to be","use to be","used to being"],"Past state that is no longer true → used to + base verb."],
+    ["___ you use to play outside a lot?",["Did","Do","Were"],"Question → Did you use to …?"],
+    ["There ___ a big tree here, but they cut it down.",["used to be","use to be","was used to be"],"There used to be … = it existed before but not now."],
+    ["I didn't ___ like reading, but now I read every day.",["use to","used to","using to"],"After didn't → use to (no -d)."],
+    ["My dad ___ smoke, but he stopped five years ago.",["used to","is used to","uses to"],"A past habit he doesn't have now → used to."]]},
+// @grammar-units-end
+];
+let grPart="",grUnit=0,grQs=[],grAns=[];
+
+function grLoad(){try{return JSON.parse(localStorage.getItem(GR_KEY)||"{}");}catch(e){return {};}}
+function grSave(d){try{localStorage.setItem(GR_KEY,JSON.stringify(d));}catch(e){}}
+function grUnitsOf(p){return GRAMMAR.filter(u=>u.n>=p.from&&u.n<=p.to);}
+function grPartOf(n){return GR_PARTS.find(p=>n>=p.from&&n<=p.to);}
+function grGet(n){return GRAMMAR.find(u=>u.n===n);}
+function grScroll(){
+  const el=document.getElementById("grArea");
+  const bar=document.querySelector(".controls");
+  window.scrollTo({top:el.getBoundingClientRect().top+window.scrollY-(bar?bar.offsetHeight+16:0),behavior:"smooth"});
+}
+function grScoreTag(n,prog){
+  const s=prog[n];
+  return s===undefined?"":`<span class="gr-score ${s>=80?"done":""}">${s>=80?"✓ ":""}${s}%</span>`;
+}
+function grRow(u,prog){
+  return `<button class="gr-row" onclick="grOpenUnit(${u.n})"><span class="gr-num">${u.n}</span>
+    <span class="gr-t">${esc(u.t)}${u.f?`<span class="gr-f">${esc(u.f)}</span>`:""}</span>${grScoreTag(u.n,prog)}</button>`;
+}
+function grRenderParts(){
+  const g=document.getElementById("grGrid");if(!g)return;
+  const prog=grLoad();
+  const done=GRAMMAR.filter(u=>prog[u.n]>=80).length;
+  document.getElementById("grSummary").textContent=`${done} of ${GRAMMAR.length} units completed (80% or more in the practice)`;
+  g.innerHTML=GR_PARTS.map(p=>{
+    const us=grUnitsOf(p),d=us.filter(u=>prog[u.n]>=80).length;
+    return `<button class="tp-card ${grPart===p.id?"on":""}" ${us.length?"":"disabled"} onclick="grOpenPart('${p.id}')">
+      <span class="tp-name">${esc(p.name)}</span>
+      <span class="tp-prog">Units ${p.from}–${p.to}${us.length?` · ${d}/${us.length} done`:" · coming soon"}</span>
+      <span class="tp-bar"><span style="width:${us.length?Math.round(d/us.length*100):0}%"></span></span>
+    </button>`;}).join("");
+  let last=0;try{last=+localStorage.getItem(GR_LAST)||0;}catch(e){}
+  const lu=grGet(last);
+  document.getElementById("grContinue").innerHTML=lu&&grUnit!==last?
+    `<button class="wp-btn secondary" onclick="grOpenUnit(${lu.n})">Continue: Unit ${lu.n} — ${esc(lu.t)}</button>`:"";
+}
+function grOpenPart(id){
+  grPart=grPart===id&&!grUnit?"":id;grUnit=0;grRenderParts();
+  const area=document.getElementById("grArea");
+  if(!grPart){area.innerHTML="";return;}
+  const p=GR_PARTS.find(x=>x.id===id),prog=grLoad();
+  area.innerHTML=`<div class="tp-head"><span class="tp-title">${esc(p.name)}</span></div>`+grUnitsOf(p).map(u=>grRow(u,prog)).join("");
+}
+function grSearch(){
+  const q=document.getElementById("grFind").value.trim().toLowerCase();
+  const area=document.getElementById("grArea");
+  if(!q){grPart="";grUnit=0;grRenderParts();area.innerHTML="";return;}
+  const strip=s=>s.replace(/<[^>]+>/g,"").toLowerCase();
+  const hits=GRAMMAR.filter(u=>(u.t+" "+u.f).toLowerCase().includes(q)||u.r.some(r=>strip(r).includes(q)));
+  const prog=grLoad();
+  area.innerHTML=hits.length?`<div class="count" style="margin-top:4px;">${hits.length} unit${hits.length===1?"":"s"} found</div>`+hits.map(u=>grRow(u,prog)).join(""):
+    '<p class="empty">No unit found — try another word, e.g. “passive”, “since”, “the”.</p>';
+}
+function grBlank(s,opt){
+  // fill the ___ gaps with an option ("a … b" fills two gaps)
+  const parts=opt===undefined?null:opt.split(" … ");let k=0;
+  return esc(s).replace(/___/g,()=>parts?`<span class="vt-blank revealed">${esc(parts[k++]||"")}</span>`:'<span class="vt-blank">___</span>');
+}
+function grOpenUnit(n){
+  const u=grGet(n);if(!u)return;
+  grUnit=n;grPart=grPartOf(n).id;
+  try{localStorage.setItem(GR_LAST,n);}catch(e){}
+  grQs=u.q.map(([s,opts,why])=>({s,a:opts[0],o:shuffle(opts),why}));grAns=grQs.map(()=>null);
+  grRenderParts();
+  const prev=grGet(n-1),next=grGet(n+1),p=grPartOf(n);
+  document.getElementById("grArea").innerHTML=`
+    <div class="gr-unit">
+      <button class="clearbtn" style="font-size:.85rem;padding:0;" onclick="grOpenPart('${p.id}')">← ${esc(p.name)}</button>
+      <div class="gr-head"><span class="gr-kicker">Unit ${u.n}</span><div class="gr-title">${esc(u.t)}</div>${u.f?`<div class="gr-f">${esc(u.f)}</div>`:""}</div>
+      <div class="msec"><h4>The rules</h4><ul class="gr-rules">${u.r.map(r=>`<li>${r}</li>`).join("")}</ul></div>
+      <div class="msec"><h4>Examples</h4>${u.ex.map(e=>`<div class="gr-ex">${e}</div>`).join("")}</div>
+      <div class="msec"><h4>Common mistakes</h4>${u.err.map(([w,c])=>`<div class="gr-err"><span class="gr-bad">✗ ${esc(w)}</span><span class="gr-good">✓ ${esc(c)}</span></div>`).join("")}</div>
+      <div class="gr-ielts"><span class="gr-kicker" style="color:var(--gold);">IELTS tip</span><div>${u.ielts}</div></div>
+      <div class="msec"><h4>Practice — choose the right answer</h4>
+        ${grQs.map((q,i)=>`<div class="gr-q"><div class="gr-qs" id="grqs${i}">${i+1}. ${grBlank(q.s)}</div>
+          <div class="gr-opts" id="grq${i}">${q.o.map((o,j)=>`<button class="vt-opt" onclick="grAnswer(${i},${j})">${esc(o)}</button>`).join("")}</div>
+          <div class="gr-why" id="grw${i}"></div></div>`).join("")}
+      </div>
+      <div id="grResult"></div>
+      <div class="wp-actions" style="justify-content:space-between;margin-top:16px;">
+        ${prev?`<button class="wp-btn secondary" onclick="grOpenUnit(${prev.n});grScroll()">← Unit ${prev.n}</button>`:"<span></span>"}
+        ${next?`<button class="wp-btn secondary" onclick="grOpenUnit(${next.n});grScroll()">Unit ${next.n} →</button>`:""}
+      </div>
+      <p class="note">Follows Unit ${u.n} of <i>English Grammar in Use</i> (5th edition, Raymond Murphy). The explanations and exercises here are original.</p>
+    </div>`;
+}
+function grAnswer(i,j){
+  if(grAns[i]!==null)return;
+  const q=grQs[i],pick=q.o[j],ok=pick===q.a;grAns[i]=ok;
+  document.querySelectorAll(`#grq${i} button`).forEach((b,k)=>{
+    b.disabled=true;
+    if(q.o[k]===q.a)b.classList.add("correct");else if(k===j)b.classList.add("wrong");
+  });
+  document.getElementById("grqs"+i).innerHTML=`${i+1}. ${grBlank(q.s,q.a)}`;
+  document.getElementById("grw"+i).innerHTML=`<span class="${ok?"fb-ok":"fb-warn"}">${ok?"✓ Correct.":"✗ Not quite."}</span> ${esc(q.why)}`;
+  if(grAns.every(a=>a!==null)){
+    const score=Math.round(grAns.filter(Boolean).length/grAns.length*100);
+    const prog=grLoad();prog[grUnit]=Math.max(prog[grUnit]||0,score);grSave(prog);
+    const next=grGet(grUnit+1);
+    document.getElementById("grResult").innerHTML=`<div class="wp-result ${score>=80?"ok":"bad"}" style="margin-top:14px;">
+      ${score>=80?"✓ Unit complete":"Keep practising"} — ${grAns.filter(Boolean).length} / ${grAns.length} correct (${score}%).
+      ${score>=80?"":"Read the rules again, then try once more. You need 80% to complete the unit."}
+      <div class="wp-actions"><button class="wp-btn secondary" onclick="grOpenUnit(${grUnit})">Try again</button>
+      ${next&&score>=80?`<button class="wp-btn" onclick="grOpenUnit(${next.n});grScroll()">Next: Unit ${next.n} →</button>`:""}</div></div>`;
+    grRenderParts();
+  }
 }
 
 // ===================== IELTS TOPIC PACKS =====================
@@ -780,8 +1223,8 @@ function renderDashboard(){
 function exportProgress(){
   const db=srsLoad();const st=localStorage.getItem(SRS_STREAK)||"{}";
   const mine=localStorage.getItem("ielts_mywords")||"[]";
-  const dictMiss=localStorage.getItem(DT_MISS_KEY)||"[]";
-  const blob=new Blob([JSON.stringify({srs:db,streak:st,myWords:mine,dictMiss},null,2)],{type:"application/json"});
+  const dictMiss=localStorage.getItem(DT_MISS_KEY)||"[]",grammar=localStorage.getItem(GR_KEY)||"{}";
+  const blob=new Blob([JSON.stringify({srs:db,streak:st,myWords:mine,dictMiss,grammar},null,2)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   a.download="ielts-progress-"+today()+".json";a.click();
 }
@@ -795,6 +1238,7 @@ function importProgress(evt){
       if(d.streak)localStorage.setItem(SRS_STREAK,d.streak);
       if(d.myWords){localStorage.setItem("ielts_mywords",d.myWords);myWords=loadMine();}
       if(d.dictMiss)localStorage.setItem(DT_MISS_KEY,d.dictMiss);
+      if(d.grammar){localStorage.setItem(GR_KEY,d.grammar);grRenderParts();}
       renderDashboard();render();
       alert("Progress imported successfully!");
     }catch(err){alert("Invalid file. Please use a file exported from this tool.");}
@@ -1965,7 +2409,7 @@ function toggleTheme(){
   }catch(e){}
 })();
 
-tpOptions();wordOfDay();render();renderDashboard();wpInit();ppStart();
+tpOptions();wordOfDay();render();renderDashboard();wpInit();ppStart();grRenderParts();
 </script>
 <div class="overlay hidden" id="overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal" id="modal"></div>
