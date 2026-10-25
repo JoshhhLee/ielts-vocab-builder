@@ -243,6 +243,21 @@
     letter-spacing:.04em;text-transform:uppercase;opacity:.8;}
   .dt-bad{text-decoration:line-through;opacity:.75;}
   .dt-fix{font-weight:700;text-decoration:underline;text-underline-offset:3px;}
+  .tp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px;}
+  .tp-card{display:flex;flex-direction:column;gap:4px;text-align:left;font-family:inherit;color:var(--ink);cursor:pointer;
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 13px;}
+  .tp-card:hover{border-color:var(--accent);} .tp-card.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;}
+  .tp-name{font-weight:700;font-size:.98rem;}
+  .tp-prog{font-size:.75rem;color:var(--muted);font-family:system-ui,sans-serif;}
+  .tp-bar{display:block;height:4px;border-radius:999px;background:var(--bg);overflow:hidden;}
+  .tp-bar span{display:block;height:100%;background:var(--ok);}
+  .tp-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:4px 0 12px;}
+  .tp-title{font-size:1.25rem;font-weight:700;}
+  .tp-colls{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 4px;justify-content:inherit;}
+  .flash .tp-colls{justify-content:center;margin-top:12px;}
+  .tp-lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-family:system-ui,sans-serif;font-weight:700;}
+  .tp-chip{font-family:system-ui,sans-serif;font-size:.82rem;background:var(--bg);border-radius:999px;padding:3px 11px;}
+  .tp-chip b{color:var(--accent);}
 </style>
 </head>
 <body>
@@ -286,6 +301,10 @@
     <button class="exp-btn" onclick="exportProgress()">⬇ Export progress</button>
     <label class="exp-btn" style="cursor:pointer;">⬆ Import progress<input type="file" accept=".json" style="display:none" onchange="importProgress(event)"></label>
   </div>
+
+  <div class="section-title" style="margin-top:2rem;">IELTS topic packs</div>
+  <div class="tp-grid" id="tpGrid"></div>
+  <div id="tpArea"></div>
 
   <div class="section-title" style="margin-top:2rem;">Flashcards &amp; quiz</div>
   <div class="study-bar">
@@ -382,6 +401,8 @@ function hl(s,w){const b=w.split(/[ /]/)[0];return s.replace(new RegExp(`(${b}[a
 function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 let BANK_MAP=null;
 function bankGet(w){if(!BANK_MAP)BANK_MAP=new Map(BANK.map(x=>[x.w,x]));return BANK_MAP.get(w);}
+// JSON for an onclick='…' attribute: escape & and ' so apostrophes in examples don't end the attribute
+function attrJSON(v){return JSON.stringify(JSON.stringify(v)).replace(/&/g,"&amp;").replace(/'/g,"&#39;");}
 
 // ---------- level + alphabet controls ----------
 const lvWrap=document.getElementById("levels");
@@ -407,14 +428,14 @@ function apply(){
 }
 function cardHTML(x,opts={}){
   const isSaved=myWords.some(m=>m.w===x.w);
-  const save=opts.noSave?"":`<button class="savebtn ${isSaved?'saved':''}" onclick='toggleSave(${JSON.stringify(JSON.stringify(x))})'>${isSaved?'✓ saved':'+ save to my words'}</button>`;
+  const save=opts.noSave?"":`<button class="savebtn ${isSaved?'saved':''}" onclick='toggleSave(${attrJSON(x)})'>${isSaved?'✓ saved':'+ save to my words'}</button>`;
   const awlTag=(x.awl?`<span class="badge" style="color:var(--gold);background:var(--goldbg);">AWL</span>`:"")+
     (x.r?`<span class="badge" style="color:var(--muted);background:var(--bg);" title="Rarely used — not included in study decks">rare</span>`:"");
   const ex=x.e?`<div class="example">${hl(esc(x.e),x.w)}</div>`:`<div class="example" style="font-style:italic;color:var(--muted);">No example yet — try writing your own sentence below.</div>`;
   return `<div class="card ${opts.live?'live':''}">
-    <div class="word-row"><span class="word clickable" onclick='openModal(${JSON.stringify(JSON.stringify(x))})'>${esc(x.w)}</span><span class="pos">${esc(x.p)}</span>${badge(x.l)}${awlTag}</div>
+    <div class="word-row"><span class="word clickable" onclick='openModal(${attrJSON(x)})'>${esc(x.w)}</span><span class="pos">${esc(x.p)}</span>${badge(x.l)}${awlTag}</div>
     <p class="meaning">${esc(x.d)}</p>
-    ${ex}${save}</div>`;
+    ${ex}${collHTML(x)}${save}</div>`;
 }
 function render(){
   const list=document.getElementById("list");
@@ -469,6 +490,200 @@ async function liveLookup(){
   }finally{btn.disabled=false;btn.textContent="Explain";}
 }
 
+// ===================== IELTS TOPIC PACKS =====================
+// Each word: [word, part of speech, meaning, example, "collocation; collocation", US spelling (optional)]
+const TOPICS=[
+{id:"env",name:"Environment",icon:"🌍",words:[
+  ["sustainable","adjective","able to continue for a long time without harming the environment","Governments should invest in sustainable forms of transport.","sustainable development; sustainable energy; environmentally sustainable"],
+  ["emissions","noun","gases sent into the air, especially carbon dioxide","Car emissions are a major source of air pollution in cities.","carbon emissions; reduce emissions; greenhouse gas emissions"],
+  ["renewable","adjective","(of energy) coming from a natural source that is not used up, such as wind or sun","Many countries are switching to renewable energy.","renewable energy; renewable resources; renewable sources"],
+  ["deforestation","noun","cutting down large areas of forest","Deforestation destroys the habitats of countless species.","tackle deforestation; rapid deforestation; tropical deforestation"],
+  ["biodiversity","noun","the variety of plants and animals living in an area","Protecting biodiversity is essential for healthy ecosystems.","loss of biodiversity; preserve biodiversity; rich biodiversity"],
+  ["pollutant","noun","a substance that makes air, water or soil dirty and harmful","Factories still release harmful pollutants into rivers.","air pollutants; industrial pollutants; release pollutants"],
+  ["conservation","noun","protecting nature, wildlife or resources from damage or waste","Conservation projects have helped tiger numbers recover.","wildlife conservation; energy conservation; conservation efforts"],
+  ["habitat","noun","the natural home of an animal or plant","Urban expansion is destroying natural habitats.","natural habitat; habitat loss; destroy habitats"],
+  ["contaminate","verb","to make something dirty or poisonous","Plastic waste can contaminate drinking water.","contaminated water; contaminate the soil; heavily contaminated"],
+  ["depletion","noun","reducing the amount of something until very little is left","The depletion of fossil fuels is a long-term concern.","ozone depletion; resource depletion; depletion of natural resources"],
+  ["mitigate","verb","to make something harmful less severe","Planting trees can help mitigate the effects of climate change.","mitigate the impact; mitigate risks; mitigate climate change"],
+  ["footprint","noun","the amount of carbon dioxide that a person or activity produces","Flying less is an effective way to reduce one's carbon footprint.","carbon footprint; ecological footprint; reduce a footprint"],
+  ["landfill","noun","a place where rubbish is buried in the ground","Most household waste still ends up in landfill.","landfill site; send waste to landfill; reduce landfill"],
+  ["extinction","noun","the situation in which a type of animal or plant no longer exists","Many species are on the brink of extinction.","face extinction; mass extinction; on the brink of extinction"],
+  ["drought","noun","a long period with little or no rain","Severe droughts have devastated crops in the region.","severe drought; prolonged drought; drought-stricken areas"],
+]},
+{id:"edu",name:"Education",icon:"🎓",words:[
+  ["curriculum","noun","the subjects that are taught in a school or on a course","Financial skills should be part of the school curriculum.","national curriculum; school curriculum; broaden the curriculum"],
+  ["literacy","noun","the ability to read and write","Adult literacy rates have risen sharply in the last decade.","literacy rate; digital literacy; improve literacy"],
+  ["tuition","noun","teaching, or the money paid for teaching","Rising tuition fees discourage some students from going to university.","tuition fees; private tuition; free tuition"],
+  ["vocational","adjective","teaching the skills needed for a particular job","Vocational courses prepare students directly for employment.","vocational training; vocational qualifications; vocational education"],
+  ["compulsory","adjective","required by a law or rule","Education is compulsory until the age of sixteen in many countries.","compulsory education; compulsory subject; make something compulsory"],
+  ["academic","adjective","relating to schools, universities and study","Academic success is not the only measure of intelligence.","academic performance; academic achievement; academic year"],
+  ["discipline","noun","training people to obey rules and behave well","Strict discipline in schools can improve concentration.","maintain discipline; strict discipline; self-discipline"],
+  ["graduate","noun","a person who has completed a university degree","Many graduates struggle to find work in their field.","university graduate; graduate unemployment; recent graduates"],
+  ["enrol","verb","to officially join a course, school or university","More adults are enrolling in online courses.","enrol in a course; enrol at university; student enrolment","enroll"],
+  ["rote learning","noun","learning by repeating facts until you remember them, without understanding them","Rote learning does little to develop students' critical thinking.","rely on rote learning; rote learning methods"],
+  ["critical thinking","noun","the ability to analyse information carefully and form your own judgement","Universities expect students to show critical thinking.","develop critical thinking; critical thinking skills; encourage critical thinking"],
+  ["assessment","noun","judging the quality of a student's work or ability","Continuous assessment reduces the pressure of final exams.","continuous assessment; formal assessment; assessment criteria"],
+  ["extracurricular","adjective","done in addition to normal lessons","Extracurricular activities help children develop social skills.","extracurricular activities; extracurricular clubs"],
+  ["scholarship","noun","money given to a student to pay for their studies","She won a scholarship to study abroad.","win a scholarship; full scholarship; scholarship programme"],
+  ["distance learning","noun","studying from home, usually online, instead of attending classes","Distance learning allows working adults to gain qualifications.","distance learning course; offer distance learning"],
+]},
+{id:"tech",name:"Technology",icon:"💻",words:[
+  ["innovation","noun","a new idea, method or invention","Technological innovation drives economic growth.","technological innovation; encourage innovation; latest innovation"],
+  ["automation","noun","using machines or computers instead of people to do work","Automation may replace many routine factory jobs.","increased automation; automation of jobs; industrial automation"],
+  ["artificial intelligence","noun","computer systems that can do tasks that normally need human intelligence","Artificial intelligence is already transforming healthcare.","advances in artificial intelligence; develop artificial intelligence"],
+  ["obsolete","adjective","no longer used because something newer and better exists","Many traditional skills have become obsolete.","become obsolete; render something obsolete; obsolete technology"],
+  ["surveillance","noun","carefully watching people, often by the police or government","Increased surveillance raises serious concerns about privacy.","surveillance cameras; mass surveillance; under surveillance"],
+  ["privacy","noun","the right to keep your personal life and information to yourself","Social media users often give up their privacy without realising it.","invasion of privacy; data privacy; protect privacy"],
+  ["cyberbullying","noun","bullying someone using the internet or mobile phones","Schools must take cyberbullying as seriously as physical bullying.","victims of cyberbullying; tackle cyberbullying"],
+  ["addictive","adjective","making people unable to stop doing or using something","Many smartphone games are designed to be addictive.","highly addictive; addictive behaviour; addictive nature"],
+  ["breakthrough","noun","an important new discovery or development","Scientists have made a breakthrough in cancer research.","major breakthrough; technological breakthrough; make a breakthrough"],
+  ["digital divide","noun","the gap between people who have access to modern technology and those who do not","Rural communities are on the wrong side of the digital divide.","bridge the digital divide; widen the digital divide"],
+  ["connectivity","noun","the state of being connected to the internet or other devices","Better connectivity allows people to work from almost anywhere.","internet connectivity; high-speed connectivity; mobile connectivity"],
+  ["device","noun","a machine or tool made for a particular purpose","Children spend several hours a day on electronic devices.","electronic devices; mobile devices; digital devices"],
+  ["misinformation","noun","false or misleading information","Misinformation spreads quickly on social media.","spread misinformation; combat misinformation"],
+  ["cutting-edge","adjective","the newest and most advanced","The university invests heavily in cutting-edge research.","cutting-edge technology; cutting-edge research"],
+  ["remotely","adverb","from a distance, rather than in an office or on site","Many employees now work remotely for part of the week.","work remotely; access files remotely; remotely controlled"],
+]},
+{id:"health",name:"Health",icon:"🩺",words:[
+  ["sedentary","adjective","involving a lot of sitting and very little exercise","A sedentary lifestyle increases the risk of heart disease.","sedentary lifestyle; sedentary jobs; sedentary behaviour"],
+  ["obesity","noun","being very overweight in a way that is dangerous to health","Childhood obesity has doubled in recent decades.","childhood obesity; obesity rates; tackle obesity"],
+  ["nutrition","noun","the food you eat and the way it affects your health","Good nutrition is vital for children's development.","poor nutrition; balanced nutrition; nutrition education"],
+  ["epidemic","noun","a disease or problem that spreads quickly and affects many people","Some experts describe obesity as a modern epidemic.","global epidemic; obesity epidemic; outbreak of an epidemic"],
+  ["preventive","adjective","intended to stop something bad, such as illness, from happening","Preventive medicine is far cheaper than treatment.","preventive measures; preventive healthcare; preventive medicine"],
+  ["life expectancy","noun","the average number of years a person is expected to live","Life expectancy has risen thanks to medical advances.","increase life expectancy; average life expectancy"],
+  ["well-being","noun","the state of being healthy, happy and comfortable","Regular exercise benefits both physical and mental well-being.","mental well-being; sense of well-being; promote well-being"],
+  ["chronic","adjective","(of an illness) lasting for a long time","Chronic diseases put huge pressure on health services.","chronic illness; chronic pain; chronic condition"],
+  ["vaccination","noun","giving someone a substance to protect them from a disease","Vaccination programmes have eliminated several deadly diseases.","vaccination programme; mandatory vaccination; vaccination rates"],
+  ["diagnosis","noun","identifying an illness by examining someone","Early diagnosis greatly improves the chances of recovery.","early diagnosis; make a diagnosis; accurate diagnosis"],
+  ["sanitation","noun","systems that keep places clean, especially by removing waste","Poor sanitation leads to the spread of disease.","poor sanitation; improve sanitation; sanitation facilities"],
+  ["lifestyle","noun","the way a person lives, including their habits","Lifestyle choices have a major effect on long-term health.","healthy lifestyle; lifestyle choices; lifestyle changes"],
+  ["mental health","noun","the condition of a person's mind and emotions","Awareness of mental health issues is growing among young people.","mental health problems; mental health services; raise awareness of mental health"],
+  ["pharmaceutical","adjective","relating to the production and sale of medicines","Pharmaceutical companies spend billions on research.","pharmaceutical industry; pharmaceutical companies"],
+  ["healthcare","noun","the services that look after people's health","Free healthcare should be available to everyone.","public healthcare; healthcare system; access to healthcare"],
+]},
+{id:"work",name:"Work & Business",icon:"💼",words:[
+  ["unemployment","noun","having no job, or the number of people without jobs","Youth unemployment remains high in many countries.","youth unemployment; unemployment rate; long-term unemployment"],
+  ["workforce","noun","all the people who work in a company, industry or country","Women now make up almost half of the workforce.","skilled workforce; enter the workforce; ageing workforce"],
+  ["productivity","noun","the rate at which work is done or goods are produced","Flexible working hours can boost productivity.","increase productivity; boost productivity; labour productivity"],
+  ["entrepreneur","noun","a person who starts their own business","Young entrepreneurs are creating many new jobs.","successful entrepreneur; aspiring entrepreneur"],
+  ["work-life balance","noun","having the right amount of time for both work and personal life","A healthy work-life balance reduces stress.","achieve a work-life balance; healthy work-life balance"],
+  ["job satisfaction","noun","the feeling of enjoying and being content with your work","For some people, job satisfaction matters more than salary.","high job satisfaction; improve job satisfaction"],
+  ["incentive","noun","something that encourages a person to do something","Bonuses give staff an incentive to work harder.","financial incentive; tax incentive; provide an incentive"],
+  ["recruit","verb","to find new people to join a company or organisation","Companies are struggling to recruit skilled workers.","recruit staff; recruit graduates; actively recruit"],
+  ["promotion","noun","a move to a more important position at work","She was offered a promotion after only two years.","get a promotion; seek promotion; career promotion"],
+  ["redundant","adjective","having lost your job because it is no longer needed","Hundreds of workers were made redundant when the factory closed.","be made redundant; redundant workers"],
+  ["commute","verb","to travel regularly between home and work","Many people commute for over an hour each day.","commute to work; daily commute; long commute"],
+  ["wage","noun","money paid for work, usually per hour or per week","The minimum wage should rise in line with living costs.","minimum wage; wage gap; low wages"],
+  ["flexible","adjective","able to change easily to suit new conditions","Flexible working hours suit parents with young children.","flexible working; flexible hours; flexible schedule"],
+  ["consumer","noun","a person who buys goods or services","Consumers are becoming more environmentally aware.","consumer demand; consumer spending; consumer rights"],
+  ["outsource","verb","to pay another company, often abroad, to do work","Many firms outsource their customer service to other countries.","outsource jobs; outsource production"],
+]},
+{id:"crime",name:"Crime & Law",icon:"⚖️",words:[
+  ["offender","noun","a person who has committed a crime","Young offenders need education, not only punishment.","young offenders; repeat offenders; first-time offender"],
+  ["rehabilitation","noun","helping a criminal return to a normal, law-abiding life","Prisons should focus more on rehabilitation.","rehabilitation programmes; offender rehabilitation"],
+  ["deterrent","noun","something that makes people decide not to do something","Harsh sentences may act as a deterrent to crime.","effective deterrent; act as a deterrent; strong deterrent"],
+  ["sentence","noun","the punishment given by a court","He received a five-year prison sentence.","prison sentence; life sentence; serve a sentence"],
+  ["reoffend","verb","to commit another crime after being punished","Many prisoners reoffend soon after their release.","likely to reoffend; rate of reoffending"],
+  ["juvenile","adjective","relating to young people who are not yet adults","Juvenile crime has fallen in recent years.","juvenile crime; juvenile delinquency; juvenile offenders"],
+  ["legislation","noun","a law or a set of laws","New legislation bans smoking in all public places.","introduce legislation; pass legislation; strict legislation"],
+  ["enforce","verb","to make sure that a law or rule is obeyed","Speed limits must be strictly enforced.","enforce the law; strictly enforced; law enforcement"],
+  ["capital punishment","noun","killing someone as an official punishment for a crime","Capital punishment remains a highly controversial issue.","abolish capital punishment; support capital punishment"],
+  ["imprisonment","noun","the punishment of being kept in prison","Imprisonment does not always reduce crime.","life imprisonment; sentenced to imprisonment"],
+  ["petty","adjective","(of a crime) small and not very serious","Petty crime such as shoplifting is common in city centres.","petty crime; petty theft"],
+  ["violent","adjective","using force to hurt or kill people","Violent crime has risen in some cities.","violent crime; violent behaviour; violent offenders"],
+  ["community service","noun","unpaid work that an offender does as a punishment instead of prison","Minor offenders could do community service instead of going to prison.","sentenced to community service; do community service"],
+  ["victim","noun","a person who has been harmed by a crime","Victims of crime deserve proper support.","crime victims; innocent victim; fall victim to"],
+  ["prosecute","verb","to officially accuse someone of a crime in a court of law","Companies that pollute rivers should be prosecuted.","be prosecuted for; prosecute offenders"],
+]},
+{id:"city",name:"Cities & Urbanisation",icon:"🏙️",words:[
+  ["urbanisation","noun","the process of more and more people moving to live in cities","Rapid urbanisation has put enormous pressure on housing.","rapid urbanisation; the process of urbanisation","urbanization"],
+  ["infrastructure","noun","the basic systems a country or city needs, such as roads, transport and power","The city urgently needs to invest in its infrastructure.","transport infrastructure; invest in infrastructure; public infrastructure"],
+  ["congestion","noun","too much traffic on the roads","Congestion charges have reduced traffic in central London.","traffic congestion; congestion charge; reduce congestion"],
+  ["overcrowded","adjective","containing too many people","Overcrowded cities often suffer from poor air quality.","overcrowded cities; overcrowded housing; overcrowded public transport"],
+  ["affordable","adjective","cheap enough for most people to pay for","There is a serious shortage of affordable housing.","affordable housing; affordable prices"],
+  ["suburb","noun","an area where people live outside the centre of a city","Many families move to the suburbs for more space.","live in the suburbs; a quiet suburb"],
+  ["amenities","noun","useful facilities such as shops, parks and hospitals","Rural areas often lack basic amenities.","local amenities; basic amenities; public amenities"],
+  ["public transport","noun","buses, trains and other vehicles that everyone can use","Cheaper public transport would reduce car use.","use public transport; invest in public transport; efficient public transport"],
+  ["migration","noun","moving from one place to another to live or work","Rural-to-urban migration is common in developing countries.","rural-to-urban migration; mass migration"],
+  ["sprawl","noun","the spread of a city into the countryside around it","Urban sprawl is destroying valuable farmland.","urban sprawl"],
+  ["pedestrian","noun","a person who is walking, especially in a street","City centres should be made safer for pedestrians.","pedestrian zone; pedestrian crossing"],
+  ["homelessness","noun","the state of having nowhere to live","Homelessness has increased as rents have risen.","tackle homelessness; rising homelessness"],
+  ["high-rise","adjective","(of a building) very tall, with many floors","High-rise flats house many people on a small area of land.","high-rise buildings; high-rise flats"],
+  ["regeneration","noun","improving an area that has become run-down","The regeneration of the old docks created thousands of jobs.","urban regeneration; regeneration project"],
+  ["rural","adjective","relating to the countryside","Rural areas often have poor internet access.","rural areas; rural communities; rural life"],
+]},
+{id:"culture",name:"Globalisation & Culture",icon:"🌐",words:[
+  ["globalisation","noun","the process by which countries become more connected through trade and culture","Globalisation has made foreign products widely available.","economic globalisation; the effects of globalisation","globalization"],
+  ["multicultural","adjective","including people of many different cultures","London is one of the most multicultural cities in the world.","multicultural society; multicultural community"],
+  ["heritage","noun","the history, traditions and buildings that a country has had for many years","Governments have a duty to protect their cultural heritage.","cultural heritage; national heritage; heritage sites"],
+  ["tradition","noun","a custom or belief passed down from one generation to the next","Many local traditions are disappearing in modern society.","long tradition; preserve traditions; cultural traditions"],
+  ["identity","noun","the qualities that make a person or group who they are","Language is central to national identity.","national identity; cultural identity; sense of identity"],
+  ["diversity","noun","a range of many different types of people or things","Cultural diversity enriches society.","cultural diversity; ethnic diversity; embrace diversity"],
+  ["integrate","verb","to become part of a group or society","Immigrants may find it difficult to integrate into a new culture.","integrate into society; fully integrated"],
+  ["immigration","noun","the process of coming to live permanently in another country","Immigration can help fill labour shortages.","immigration policy; illegal immigration"],
+  ["tourism","noun","the business of providing services for people on holiday","Mass tourism can damage historic sites.","mass tourism; tourism industry; eco-tourism"],
+  ["consumerism","noun","a way of life that focuses on buying goods","Consumerism encourages people to buy things they do not need.","rampant consumerism; a culture of consumerism"],
+  ["stereotype","noun","a fixed and often unfair idea about a type of person or thing","Media coverage can reinforce negative stereotypes.","gender stereotypes; reinforce stereotypes; challenge stereotypes"],
+  ["inequality","noun","an unfair difference between groups in society","Income inequality has widened in many countries.","income inequality; social inequality; gender inequality"],
+  ["generation gap","noun","the difference in attitudes between young and older people","Technology has widened the generation gap.","bridge the generation gap"],
+  ["preserve","verb","to keep something from being damaged or lost","Museums help preserve a nation's history.","preserve traditions; preserve the environment; well preserved"],
+  ["multinational","adjective","operating in many different countries","Multinational companies dominate the global economy.","multinational corporations; multinational companies"],
+]},
+];
+const TOPIC_WORDS=TOPICS.flatMap(t=>t.words.map(([w,p,d,e,c,us])=>{
+  const b=bankGet(w);
+  return {w,p,l:b&&!b.r?b.l:"B2",d,e,c:c.split("; "),t:t.id,...(us?{us}:{})};
+}));
+let tpOpen="";
+
+function collHTML(x){
+  return x.c&&x.c.length?`<div class="tp-colls"><span class="tp-lbl">Collocations</span>`+
+    x.c.map(c=>`<span class="tp-chip">${hl(esc(c),x.w)}</span>`).join("")+`</div>`:"";
+}
+function tpStats(id){
+  const db=srsLoad();const ws=TOPIC_WORDS.filter(x=>x.t===id);
+  return {n:ws.length,studied:ws.filter(x=>db[x.w]).length,mastered:ws.filter(x=>db[x.w]&&db[x.w].interval>=21).length};
+}
+function renderTopics(){
+  const g=document.getElementById("tpGrid");if(!g)return;
+  g.innerHTML=TOPICS.map(t=>{
+    const s=tpStats(t.id);
+    return `<button class="tp-card ${tpOpen===t.id?'on':''}" onclick="tpToggle('${t.id}')">
+      <span class="tp-name">${t.icon} ${esc(t.name)}</span>
+      <span class="tp-prog">${s.studied}/${s.n} studied${s.mastered?` · ${s.mastered} mastered`:""}</span>
+      <span class="tp-bar"><span style="width:${Math.round(s.studied/s.n*100)}%"></span></span>
+    </button>`;}).join("");
+}
+function tpToggle(id){
+  tpOpen=tpOpen===id?"":id;renderTopics();
+  const area=document.getElementById("tpArea");
+  if(!tpOpen){area.innerHTML="";return;}
+  const t=TOPICS.find(x=>x.id===id);
+  area.innerHTML=`<div class="tp-head"><span class="tp-title">${t.icon} ${esc(t.name)}</span>
+      <span class="wp-actions" style="margin-top:0;">
+        <button class="wp-btn" onclick="tpStudy('${id}','flash')">Flashcards</button>
+        <button class="wp-btn secondary" onclick="tpStudy('${id}','quiz')">Quiz</button>
+        <button class="wp-btn secondary" onclick="tpDictate('${id}')">Dictation</button>
+      </span></div>`+
+    TOPIC_WORDS.filter(x=>x.t===id).map(x=>cardHTML(x)).join("");
+}
+function tpStudy(id,mode){
+  document.getElementById("deckSel").value="topic:"+id;setMode(mode);startStudy();
+  document.getElementById("studyArea").scrollIntoView({behavior:"smooth",block:"center"});
+}
+function tpDictate(id){
+  document.getElementById("dtDeck").value="topic:"+id;dtStart();
+  document.getElementById("dtBox").scrollIntoView({behavior:"smooth",block:"center"});
+}
+// add the packs to the flashcard and dictation deck pickers
+function tpOptions(){
+  ["deckSel","dtDeck"].forEach(sid=>{
+    const g=document.createElement("optgroup");g.label="IELTS topic packs";
+    TOPICS.forEach(t=>g.appendChild(new Option(t.name,"topic:"+t.id)));
+    document.getElementById(sid).appendChild(g);
+  });
+}
+
 // ---------- flashcards & quiz ----------
 // ===================== SRS ENGINE (SM-2 algorithm) =====================
 const SRS_KEY="ielts_srs";
@@ -498,7 +713,9 @@ function srsGrade(word,grade){
 }
 function srsDue(){
   const db=srsLoad();const td=today();
-  return BANK.concat(myWords).filter(x=>{
+  const seen=new Set();
+  return TOPIC_WORDS.concat(BANK,myWords).filter(x=>{
+    if(seen.has(x.w))return false;seen.add(x.w);
     const s=db[x.w];return s&&s.due<=td;
   });
 }
@@ -536,6 +753,7 @@ function renderDashboard(){
   // update the due today option label
   const sel=document.getElementById("deckSel");
   if(sel)sel.options[0].text=`⏰ Due today${due?` (${due})`:""}`;
+  renderTopics();
 }
 
 // export / import
@@ -575,6 +793,7 @@ function buildDeck(){
   const sel=document.getElementById("deckSel").value;let pool;
   if(sel==="due"){pool=srsDue();if(!pool.length)return[];}
   else if(sel==="mine")pool=myWords.slice();
+  else if(sel.startsWith("topic:"))pool=TOPIC_WORDS.filter(x=>x.t===sel.slice(6));
   else if(sel==="mixed")pool=shuffle(STUDY).slice(0,30);
   else pool=STUDY.filter(x=>x.l===sel);
   return sel==="due"?pool:shuffle(pool).slice(0,20);
@@ -618,6 +837,7 @@ function revealFlash(){
        <div class="fp">${esc(x.p)} · ${x.l}</div>
        <div class="fd">${esc(x.d)}</div>
        ${x.e?`<div class="fe">${hl(esc(x.e),x.w)}</div>`:""}
+       ${collHTML(x)}
      </div>
      <div class="grade">
        <button class="gr-again" onclick="gradeFlash(0)">Again<span class="sub">Forgot it</span></button>
@@ -635,7 +855,9 @@ function gradeFlash(g){
 // quiz (with SRS grading on correct/wrong)
 function showQuiz(){
   const x=deck[idx];
-  const others=shuffle(STUDY.filter(b=>b.w!==x.w&&b.d!==x.d)).slice(0,3);
+  // topic words get their wrong options from the same pack, which makes the quiz harder
+  const src=x.t?TOPIC_WORDS.filter(b=>b.t===x.t):STUDY;
+  const others=shuffle(src.filter(b=>b.w!==x.w&&b.d!==x.d)).slice(0,3);
   const opts=shuffle([x,...others]);
   document.getElementById("studyArea").innerHTML=studyProgress()+
     `<div class="card"><div class="qword">${esc(x.w)}</div>
@@ -691,7 +913,7 @@ function modalShell(x,bodyHTML){
       <span class="phon-text" id="mPhon"></span>
     </div>
     <div id="mBody">${bodyHTML}</div>
-    <button class="modal-save ${saved?'saved':''}" id="mSave" onclick='toggleSave(${JSON.stringify(JSON.stringify(x))});refreshModalSave("${esc(x.w)}")'>${saved?'✓ saved':'+ save to my words'}</button>`;
+    <button class="modal-save ${saved?'saved':''}" id="mSave" onclick='toggleSave(${attrJSON(x)});refreshModalSave("${esc(x.w)}")'>${saved?'✓ saved':'+ save to my words'}</button>`;
 }
 function refreshModalSave(word){
   const btn=document.getElementById("mSave");if(!btn)return;
@@ -708,7 +930,7 @@ async function openModal(jsonStr){
     <div class="msec"><h4>Meaning</h4>
       <div class="mdef"><div class="dtext">${esc(x.d)}</div>
       ${x.e?`<div class="deg">${hl(esc(x.e),x.w)}</div>`:""}</div>
-    </div>
+    </div>${collHTML(x)}
     <div class="modal-loading" id="mLoading">Loading more examples &amp; word family…</div>`;
   modal.innerHTML=modalShell(x,baseBody);
   overlay.classList.remove("hidden");
@@ -756,7 +978,7 @@ function enrichModal(x,data){
 
   let html=`<div class="msec"><h4>Meaning</h4>
     <div class="mdef"><div class="dtext">${esc(x.d)}</div>
-    ${x.e?`<div class="deg">${hl(esc(x.e),x.w)}</div>`:""}</div></div>`;
+    ${x.e?`<div class="deg">${hl(esc(x.e),x.w)}</div>`:""}</div></div>${collHTML(x)}`;
   if(examples.length){
     html+=`<div class="msec"><h4>Examples</h4>`+
       examples.slice(0,5).map(e=>`<div class="deg">${hl(esc(e.text),x.w)}</div>`).join("")+`</div>`;
@@ -978,6 +1200,7 @@ function dtTarget(){return dtQueue[dtIdx].split("|")[0];}
 function dtDeckWords(sel){
   const ok=w=>/^[a-z]{4,14}$/.test(w);
   if(sel==="ielts")return DT_IELTS.slice();
+  if(sel.startsWith("topic:"))return TOPIC_WORDS.filter(x=>x.t===sel.slice(6)&&/^[a-z]+$/.test(x.w)).map(x=>x.w+(x.us?"|"+x.us:""));
   if(sel==="miss")return dtMissLoad();
   if(sel==="mine")return myWords.map(x=>x.w).filter(ok);
   if(sel==="awl")return BANK.filter(x=>x.awl&&ok(x.w)).map(x=>x.w);
@@ -1338,7 +1561,7 @@ function wpNewBuild(){
     </div>
     <textarea class="wp-input" id="wpBuildAns" rows="3" placeholder="Write your sentence..." style="margin-top:10px;"></textarea>
     <div class="wp-actions">
-      <button class="wp-btn" onclick='wpCheckBuild(${JSON.stringify(JSON.stringify(picks.map(p=>p.w)))})'>Check</button>
+      <button class="wp-btn" onclick='wpCheckBuild(${attrJSON(picks.map(p=>p.w))})'>Check</button>
       <button class="wp-btn secondary" onclick="wpNewBuild()">New words →</button>
     </div>
     <div id="wpResult"></div>`;
@@ -1469,7 +1692,7 @@ function toggleTheme(){
   }catch(e){}
 })();
 
-wordOfDay();render();renderDashboard();wpInit();
+tpOptions();wordOfDay();render();renderDashboard();wpInit();
 </script>
 <div class="overlay hidden" id="overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal" id="modal"></div>
