@@ -268,6 +268,8 @@
   .pp-why{font-size:.84rem;color:var(--muted);font-family:system-ui,sans-serif;margin-top:3px;}
   .pp-key{font-size:.94rem;margin-bottom:5px;}
   .pp-from{color:var(--muted);} .pp-to{color:var(--accent);font-weight:600;}
+  .pp-listen{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0 4px;}
+  .speak:disabled{opacity:.45;cursor:default;border-color:var(--line);color:var(--ink);}
 </style>
 </head>
 <body>
@@ -355,6 +357,7 @@
   <div class="section-title">Paraphrase trainer</div>
   <div class="wp-tabs">
     <button class="wp-tab on" id="ppSentTab" onclick="ppSwitch('sent')">Sentences</button>
+    <button class="wp-tab" id="ppListenTab" onclick="ppSwitch('listen')">Listening</button>
     <button class="wp-tab" id="ppSwapTab" onclick="ppSwitch('swap')">Word swaps</button>
   </div>
   <div class="wp-box" id="ppBox"></div>
@@ -1488,22 +1491,35 @@ const PP_SWAP=Object.entries({
   linking:"because of=due to; but=however; also=in addition; so=as a result; for example=for instance",
 }).flatMap(([g,list])=>list.split("; ").map(p=>{const [a,b]=p.split("=");return {a,b,g};}));
 
-let ppMode="sent",ppQ=[],ppIdx=0,ppScore=0,ppFell={},ppOpts=[],ppDone=false;
+let ppMode="sent",ppQ=[],ppIdx=0,ppScore=0,ppFell={},ppOpts=[],ppDone=false,ppPlays=0;
+// listening: exam mode allows one play, like the real test
+let ppOnce=false;try{ppOnce=localStorage.getItem("ielts_pp_once")==="1";}catch(e){}
 function ppSwitch(m){
   ppMode=m;
   document.getElementById("ppSentTab").classList.toggle("on",m==="sent");
+  document.getElementById("ppListenTab").classList.toggle("on",m==="listen");
   document.getElementById("ppSwapTab").classList.toggle("on",m==="swap");
   ppStart();
 }
 function ppStart(){
-  ppQ=shuffle(ppMode==="sent"?PP_SENT:PP_SWAP).slice(0,ppMode==="sent"?8:10);
+  ppQ=shuffle(ppMode==="swap"?PP_SWAP:PP_SENT).slice(0,ppMode==="swap"?10:8);
   ppIdx=0;ppScore=0;ppFell={};ppRender();
 }
 function ppRender(){
   if(ppIdx>=ppQ.length){ppFinish();return;}
   ppDone=false;
   const q=ppQ[ppIdx],head=`<div class="vt-mode-row"><label>Question ${ppIdx+1} of ${ppQ.length}</label><label style="margin-left:auto;">Score ${ppScore}</label></div>`;
-  if(ppMode==="sent"){
+  if(ppMode==="listen"){
+    if(!("speechSynthesis" in window)){
+      document.getElementById("ppBox").innerHTML='<p class="empty">This browser can’t play audio. Try Chrome, Safari or Edge.</p>';return;}
+    ppPlays=0;
+    ppOpts=shuffle([{t:q.ok,k:"ok"},...q.traps.map(([t,k,why])=>({t,k,why}))]);
+    document.getElementById("ppBox").innerHTML=head+`
+      <div class="wp-hint">Read the options, then play the recording. Which option matches what the speaker says?</div>
+      <div id="ppListen">${ppListenBar()}</div>
+      <div class="qopts" id="ppOpts">${ppOpts.map((o,i)=>`<button class="qopt" disabled onclick="ppAnswer(${i})">${esc(o.t)}</button>`).join("")}</div>
+      <div id="ppFeedback"></div>`;
+  }else if(ppMode==="sent"){
     ppOpts=shuffle([{t:q.ok,k:"ok"},...q.traps.map(([t,k,why])=>({t,k,why}))]);
     document.getElementById("ppBox").innerHTML=head+`
       <div class="wp-hint">Which sentence has the same meaning as this one?</div>
@@ -1528,20 +1544,48 @@ function ppAnswer(i){
     else if(j===i)b.classList.add("wrong");
   });
   if(pick.k==="ok")ppScore++;
-  else if(ppMode==="sent")ppFell[pick.k]=(ppFell[pick.k]||0)+1;
-  let html;
-  if(ppMode==="sent"){
-    html=`<div class="pp-exp">`+ppOpts.map(o=>o.k==="ok"
+  else if(ppMode!=="swap")ppFell[pick.k]=(ppFell[pick.k]||0)+1;
+  let html="";
+  if(ppMode==="listen"){
+    try{speechSynthesis.cancel();}catch(e){}
+    document.getElementById("ppListen").innerHTML=`<button class="speak" onclick="speak(ppQ[ppIdx].s,'GB',0.9)">▶ Play again</button>`;
+    html=`<div class="msec" style="margin-top:14px;"><h4>Transcript</h4><div class="pp-orig">${esc(q.s)}</div></div>`;
+  }
+  if(ppMode!=="swap"){
+    html+=`<div class="pp-exp">`+ppOpts.map(o=>o.k==="ok"
         ?`<div class="pp-exp-row"><span class="pp-tag ok">✓ Paraphrase</span>${esc(o.t)}<div class="pp-why">Same meaning, different words.</div></div>`
         :`<div class="pp-exp-row"><span class="pp-tag">${PP_TRAPS[o.k][0]}</span>${esc(o.t)}<div class="pp-why">${esc(o.why||PP_TRAPS[o.k][1])}</div></div>`).join("")+
       `</div><div class="msec"><h4>How it was paraphrased</h4>`+
       q.keys.split("; ").map(k=>{const [a,b]=k.split(" → ");
         return `<div class="pp-key"><span class="pp-from">${esc(a)}</span> → <span class="pp-to">${esc(b)}</span></div>`;}).join("")+`</div>`;
   }else{
-    html=`<div class="wp-result ${pick.k==="ok"?"ok":"bad"}">${pick.k==="ok"?"✓ Correct":"Not quite"} — <b>${esc(q.a)}</b> → <b>${esc(q.b)}</b></div>`;
+    html+=`<div class="wp-result ${pick.k==="ok"?"ok":"bad"}">${pick.k==="ok"?"✓ Correct":"Not quite"} — <b>${esc(q.a)}</b> → <b>${esc(q.b)}</b></div>`;
   }
   html+=`<div class="wp-actions"><button class="wp-btn" onclick="ppIdx++;ppRender()">${ppIdx+1<ppQ.length?"Next →":"See results"}</button></div>`;
   document.getElementById("ppFeedback").innerHTML=html;
+}
+function ppListenBar(){
+  const used=ppOnce&&ppPlays>=1;
+  return `<div class="pp-listen">
+      <button class="speak" onclick="ppPlay(0.9)" ${used?"disabled":""}>▶ ${ppPlays?"Play again":"Play recording"}</button>
+      ${ppOnce?"":`<button class="speak" onclick="ppPlay(0.7)">🐢 Slower</button>`}
+      <span class="seg" style="margin-left:auto;">
+        <button class="${ppOnce?"":"on"}" onclick="ppSetOnce(false)">Practice</button>
+        <button class="${ppOnce?"on":""}" onclick="ppSetOnce(true)">Exam</button>
+      </span>
+    </div>
+    <div class="note" style="margin-top:4px;">${ppOnce?(used?"Played once — in the exam you hear each recording only once.":"Exam mode: you can listen only once."):
+      (ppPlays?`Played ${ppPlays}×`:"Practice mode: replay as often as you like.")}</div>`;
+}
+function ppPlay(rate){
+  if(ppDone||(ppOnce&&ppPlays>=1))return;
+  ppPlays++;speak(ppQ[ppIdx].s,"GB",rate);
+  document.querySelectorAll("#ppOpts button").forEach(b=>b.disabled=false);
+  document.getElementById("ppListen").innerHTML=ppListenBar();
+}
+function ppSetOnce(v){
+  ppOnce=v;try{localStorage.setItem("ielts_pp_once",v?"1":"0");}catch(e){}
+  if(!ppDone)document.getElementById("ppListen").innerHTML=ppListenBar();
 }
 function ppFinish(){
   const total=ppQ.length,fell=Object.entries(ppFell).sort((a,b)=>b[1]-a[1]);
